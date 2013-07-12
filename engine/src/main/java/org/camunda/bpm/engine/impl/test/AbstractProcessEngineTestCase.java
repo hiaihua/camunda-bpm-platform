@@ -13,6 +13,7 @@
 
 package org.camunda.bpm.engine.impl.test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ import java.util.logging.Level;
 
 import junit.framework.AssertionFailedError;
 
-import org.apache.ibatis.logging.LogFactory;
+import org.camunda.bpm.engine.AuthorizationService;
 import org.camunda.bpm.engine.FormService;
 import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.IdentityService;
@@ -42,6 +43,8 @@ import org.camunda.bpm.engine.impl.interceptor.CommandExecutor;
 import org.camunda.bpm.engine.impl.jobexecutor.JobExecutor;
 import org.camunda.bpm.engine.impl.util.ClockUtil;
 import org.camunda.bpm.engine.impl.util.LogUtil.ThreadLogMode;
+import org.camunda.bpm.engine.runtime.ActivityInstance;
+import org.camunda.bpm.engine.runtime.Job;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.junit.Assert;
 
@@ -53,7 +56,7 @@ public abstract class AbstractProcessEngineTestCase extends PvmTestCase {
 
   static {
     // this ensures that mybatis uses the jdk logging
-    LogFactory.useJdkLogging();
+//    LogFactory.useJdkLogging();
     // with an upgrade of mybatis, this might have to become org.mybatis.generator.logging.LogFactory.forceJavaLogging();
   }
   
@@ -75,6 +78,7 @@ public abstract class AbstractProcessEngineTestCase extends PvmTestCase {
   protected HistoryService historyService;
   protected IdentityService identityService;
   protected ManagementService managementService;
+  protected AuthorizationService authorizationService;
   
   protected abstract void initializeProcessEngine();
   
@@ -174,6 +178,7 @@ public abstract class AbstractProcessEngineTestCase extends PvmTestCase {
     historyService = processEngine.getHistoryService();
     identityService = processEngine.getIdentityService();
     managementService = processEngine.getManagementService();
+    authorizationService = processEngine.getAuthorizationService();
   }
   
   public void assertProcessEnded(final String processInstanceId) {
@@ -188,10 +193,21 @@ public abstract class AbstractProcessEngineTestCase extends PvmTestCase {
     }
   }
 
+  @Deprecated
   public void waitForJobExecutorToProcessAllJobs(long maxMillisToWait, long intervalMillis) {
+    waitForJobExecutorToProcessAllJobs(maxMillisToWait);
+  }
+  
+  public void waitForJobExecutorToProcessAllJobs(long maxMillisToWait) {
     JobExecutor jobExecutor = processEngineConfiguration.getJobExecutor();
     jobExecutor.start();
+    long intervalMillis = 1000;
 
+    int jobExecutorWaitTime = jobExecutor.getWaitTimeInMillis() * 2;
+    if(maxMillisToWait < jobExecutorWaitTime) {
+      maxMillisToWait = jobExecutorWaitTime;
+    }
+    
     try {
       Timer timer = new Timer();
       InteruptTask task = new InteruptTask(Thread.currentThread());
@@ -220,9 +236,19 @@ public abstract class AbstractProcessEngineTestCase extends PvmTestCase {
     }
   }
 
+  @Deprecated
   public void waitForJobExecutorOnCondition(long maxMillisToWait, long intervalMillis, Callable<Boolean> condition) {
+    waitForJobExecutorOnCondition(maxMillisToWait, condition);
+  }
+  
+  public void waitForJobExecutorOnCondition(long maxMillisToWait, Callable<Boolean> condition) {
     JobExecutor jobExecutor = processEngineConfiguration.getJobExecutor();
     jobExecutor.start();
+    long intervalMillis = 500;
+    
+    if(maxMillisToWait < (jobExecutor.getWaitTimeInMillis()*2)) {
+      maxMillisToWait = (jobExecutor.getWaitTimeInMillis()*2);
+    }
 
     try {
       Timer timer = new Timer();
@@ -250,13 +276,15 @@ public abstract class AbstractProcessEngineTestCase extends PvmTestCase {
   }
 
   public boolean areJobsAvailable() {
-    return !managementService
-      .createJobQuery()
-      .executable()
-      .list()
-      .isEmpty();
+    List<Job> list = managementService.createJobQuery().list();
+    for (Job job : list) {
+      if (job.getRetries() > 0 && (job.getDuedate() == null || ClockUtil.getCurrentTime().after(job.getDuedate()))) {
+        return true;
+      }
+    }
+    return false;
   }
-
+  
   private static class InteruptTask extends TimerTask {
     protected boolean timeLimitExceeded = false;
     protected Thread thread;
@@ -270,6 +298,17 @@ public abstract class AbstractProcessEngineTestCase extends PvmTestCase {
       timeLimitExceeded = true;
       thread.interrupt();
     }
+  }
+  
+  protected List<ActivityInstance> getInstancesForActivitiyId(ActivityInstance activityInstance, String activityId) {
+    List<ActivityInstance> result = new ArrayList<ActivityInstance>();
+    if(activityInstance.getActivityId().equals(activityId)) {
+      result.add(activityInstance);
+    }
+    for (ActivityInstance childInstance : activityInstance.getChildActivityInstances()) {
+      result.addAll(getInstancesForActivitiyId(childInstance,activityId));
+    }
+    return result;
   }
   
 }

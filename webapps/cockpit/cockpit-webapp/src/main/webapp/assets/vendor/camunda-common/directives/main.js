@@ -1,8 +1,11 @@
 ngDefine('camunda.common.directives', [
-  './errorPanel',
+  'module:camunda.common.directives.notificationsPanel:./notificationsPanel',
+  './email',
   './help',
   './requestAware',
-  './paginator'
+  './paginator',
+  './password',
+  './stateCircle'
 ], function(module) {
 
 });

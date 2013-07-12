@@ -188,6 +188,8 @@ public abstract class AbstractExecutionRestServiceQueryTest extends
     verify(mockedQuery).activityId(queryParameters.get("activityId"));
     verify(mockedQuery).signalEventSubscriptionName(queryParameters.get("signalEventSubscriptionName"));
     verify(mockedQuery).messageEventSubscriptionName(queryParameters.get("messageEventSubscriptionName"));
+    verify(mockedQuery).active();
+    verify(mockedQuery).suspended();
     verify(mockedQuery).list();
   }
 
@@ -201,6 +203,8 @@ public abstract class AbstractExecutionRestServiceQueryTest extends
     parameters.put("activityId", "anActivityId");
     parameters.put("signalEventSubscriptionName", "anEventName");
     parameters.put("messageEventSubscriptionName", "aMessageName");
+    parameters.put("suspended", "true");
+    parameters.put("active", "true");
     
     return parameters;
   }
@@ -267,6 +271,46 @@ public abstract class AbstractExecutionRestServiceQueryTest extends
       .then().expect().statusCode(Status.OK.getStatusCode())
       .when().get(EXECUTION_QUERY_URL);    
     verify(mockedQuery).processVariableValueNotEquals(variableName, variableValue);
+  }
+  
+  @Test
+  public void testMultipleVariableParameters() {
+    String variableName1 = "varName";
+    String variableValue1 = "varValue";
+    String variableParameter1 = variableName1 + "_eq_" + variableValue1; 
+    
+    String variableName2 = "anotherVarName";
+    String variableValue2 = "anotherVarValue";
+    String variableParameter2 = variableName2 + "_neq_" + variableValue2;
+    
+    String queryValue = variableParameter1 + "," + variableParameter2;
+    
+    given().queryParam("variables", queryValue)
+      .then().expect().statusCode(Status.OK.getStatusCode())
+      .when().get(EXECUTION_QUERY_URL);    
+    
+    verify(mockedQuery).variableValueEquals(variableName1, variableValue1);
+    verify(mockedQuery).variableValueNotEquals(variableName2, variableValue2);
+  }
+  
+  @Test
+  public void testMultipleProcessVariableParameters() {
+    String variableName1 = "varName";
+    String variableValue1 = "varValue";
+    String variableParameter1 = variableName1 + "_eq_" + variableValue1; 
+    
+    String variableName2 = "anotherVarName";
+    String variableValue2 = "anotherVarValue";
+    String variableParameter2 = variableName2 + "_neq_" + variableValue2;
+    
+    String queryValue = variableParameter1 + "," + variableParameter2;
+    
+    given().queryParam("processVariables", queryValue)
+      .then().expect().statusCode(Status.OK.getStatusCode())
+      .when().get(EXECUTION_QUERY_URL);    
+    
+    verify(mockedQuery).processVariableValueEquals(variableName1, variableValue1);
+    verify(mockedQuery).processVariableValueNotEquals(variableName2, variableValue2);
   }
   
   @Test
@@ -350,6 +394,8 @@ public abstract class AbstractExecutionRestServiceQueryTest extends
     verify(mockedQuery).activityId(queryParameters.get("activityId"));
     verify(mockedQuery).signalEventSubscriptionName(queryParameters.get("signalEventSubscriptionName"));
     verify(mockedQuery).messageEventSubscriptionName(queryParameters.get("messageEventSubscriptionName"));
+    verify(mockedQuery).active();
+    verify(mockedQuery).suspended();
     verify(mockedQuery).list();
   }
 

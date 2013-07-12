@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.camunda.bpm.engine.SuspendedEntityInteractionException;
 import org.camunda.bpm.engine.impl.HistoricActivityInstanceQueryImpl;
 import org.camunda.bpm.engine.impl.bpmn.parser.BpmnParse;
 import org.camunda.bpm.engine.impl.bpmn.parser.EventSubscriptionDeclaration;
@@ -104,6 +105,9 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
   
   /** reference to a subprocessinstance, not-null if currently subprocess is started from this execution */
   protected ExecutionEntity subProcessInstance;
+  
+  /** the unique id of the current activity instance */
+  protected String activityInstanceId;
   
   protected StartingExecution startingExecution;
   
@@ -238,6 +242,9 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
     createdExecution.setProcessDefinition(getProcessDefinition());
     createdExecution.setProcessInstance(getProcessInstance());
     createdExecution.setActivity(getActivity());
+    
+    // make created execution start in same activity instance
+    createdExecution.activityInstanceId = activityInstanceId;
     
     if (log.isLoggable(Level.FINE)) {
       log.fine("Child execution "+createdExecution+" created with parent "+this);
@@ -510,6 +517,8 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
         outgoingExecution.setTransitionBeingTaken((TransitionImpl) outgoingTransition);
         outgoingExecutions.add(new OutgoingExecution(outgoingExecution, outgoingTransition, true));
       }
+      
+      concurrentRoot.setActivityInstanceId(concurrentRoot.getParentActivityInstanceId());
 
       // prune the executions that are not recycled 
       for (ActivityExecution prunedExecution: recyclableExecutions) {
@@ -550,9 +559,35 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
   }
   
   protected void performOperationSync(AtomicOperation executionOperation) {
+    if (requiresUnsuspendedExecution(executionOperation)) {
+      ensureNotSuspended();
+    }
+    
     Context
       .getCommandContext()
       .performOperation(executionOperation, this);
+  }
+  
+  protected void ensureNotSuspended() {
+    if (isSuspended()) {
+      throw new SuspendedEntityInteractionException("Execution " + id + " is suspended.");
+    }
+  }
+
+  protected boolean requiresUnsuspendedExecution(
+      AtomicOperation executionOperation) {
+    if (executionOperation != AtomicOperation.TRANSITION_NOTIFY_LISTENER_END
+        && executionOperation != AtomicOperation.TRANSITION_DESTROY_SCOPE
+        && executionOperation != AtomicOperation.TRANSITION_NOTIFY_LISTENER_TAKE
+        && executionOperation != AtomicOperation.TRANSITION_NOTIFY_LISTENER_END
+        && executionOperation != AtomicOperation.TRANSITION_CREATE_SCOPE
+        && executionOperation != AtomicOperation.TRANSITION_NOTIFY_LISTENER_START
+        && executionOperation != AtomicOperation.DELETE_CASCADE
+        && executionOperation != AtomicOperation.DELETE_CASCADE_FIRE_ACTIVITY_END) {
+      return true;
+    }
+    
+    return false;
   }
 
   protected void scheduleAtomicOperationAsync(AtomicOperation executionOperation) {
@@ -707,8 +742,8 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
     return parentId == null;
   }
 
-  // activity /////////////////////////////////////////////////////////////////
-
+ // activity /////////////////////////////////////////////////////////////////
+  
   /** ensures initialization and returns the activity */
   public ActivityImpl getActivity() {
     ensureActivityInitialized();
@@ -731,9 +766,96 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
       this.activityId = null;
       this.activityName = null;
     }
+    
   }
   
-  // parent ///////////////////////////////////////////////////////////////////
+  public void enterActivityInstance() {
+    
+    ActivityImpl activity = getActivity();
+    
+    // special treatment for starting process instance
+    if(activity == null && startingExecution!= null) {
+      activity = startingExecution.getInitial();
+    }
+    
+    activityInstanceId = generateActivityInstanceId(activity.getId());
+    
+    if(log.isLoggable(Level.FINE)) {
+      log.fine("[ENTER] "+this + ": "+activityInstanceId+", parent: "+getParentActivityInstanceId());
+    }
+    
+  }
+    
+  public void leaveActivityInstance() {
+    
+    if(activityInstanceId != null) {
+      
+      if(log.isLoggable(Level.FINE)) {
+        log.fine("[LEAVE] "+ this + ": "+activityInstanceId );
+      }
+      
+      activityInstanceId = getParentActivityInstanceId();
+    }    
+    
+  }
+  
+  public String getParentActivityInstanceId() {
+    if(isProcessInstance()) {
+      return id; 
+      
+    } else {
+      ExecutionEntity parent = getParent();
+      ActivityImpl activity = getActivity();
+      ActivityImpl parentActivity = parent.getActivity();
+      if (parent.isScope() && !isConcurrent() || parent.isConcurrent
+           && activity != parentActivity
+          ) {
+        return parent.getActivityInstanceId();
+      } else {
+        return parent.getParentActivityInstanceId();
+      }
+      
+    }
+  }
+
+  
+  /**
+   * generates an activity instance id
+   */
+  protected String generateActivityInstanceId(String activityId) {
+    
+    if(activityId.equals(processDefinitionId)) {
+      return processInstanceId;
+      
+    } else {
+      
+      String nextId = Context.getProcessEngineConfiguration()
+        .getIdGenerator()
+        .getNextId();
+      
+      String compositeId = activityId+":"+nextId;
+      if(compositeId.length()>64) {
+        return String.valueOf(nextId);
+      } else {
+        return compositeId;
+      }
+    }
+  }
+
+  public void forceUpdateActivityInstance() {
+    activityInstanceId = generateActivityInstanceId(getActivity().getActivityId());    
+  }
+  
+  public void setActivityInstanceId(String activityInstanceId) {
+    this.activityInstanceId = activityInstanceId;
+  }
+  
+  public String getActivityInstanceId() {
+    return activityInstanceId;
+  }
+
+  
+ // parent ///////////////////////////////////////////////////////////////////
   
   /** ensures initialization and returns the parent */
   public ExecutionEntity getParent() {
@@ -1031,6 +1153,9 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
         historicActivityInstance.setExecutionId(replacedBy.getId());
       }
     }
+    
+    // set replaced by activity to our activity id
+    replacedBy.setActivityInstanceId(activityInstanceId);    
   }
 
   // variables ////////////////////////////////////////////////////////////////
@@ -1070,7 +1195,7 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
       }
     }
   }
-
+  
   // persistent state /////////////////////////////////////////////////////////
 
   public Object getPersistentState() {
@@ -1078,6 +1203,7 @@ public class ExecutionEntity extends VariableScopeImpl implements ActivityExecut
     persistentState.put("processDefinitionId", this.processDefinitionId);
     persistentState.put("businessKey", businessKey);
     persistentState.put("activityId", this.activityId);
+    persistentState.put("activityInstanceId", this.activityInstanceId);
     persistentState.put("isActive", this.isActive);
     persistentState.put("isConcurrent", this.isConcurrent);
     persistentState.put("isScope", this.isScope);

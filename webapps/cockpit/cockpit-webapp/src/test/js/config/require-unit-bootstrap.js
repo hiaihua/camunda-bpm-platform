@@ -13,12 +13,20 @@
       'jquery' : 'main/webapp/assets/vendor/jquery-1.7.2.min',
       'angular' : 'main/webapp/assets/vendor/angular/angular',
       'angular-resource' : 'main/webapp/assets/vendor/angular/angular-resource',
-      'angular-mocks': 'test/js/lib/angular/angular-mocks'
+      'angular-sanitize' : 'main/webapp/assets/vendor/angular/angular-sanitize',
+      'angular-mocks': 'test/js/lib/angular/angular-mocks',
+      'bootstrap-slider': 'main/webapp/assets/vendor/bootstrap-slider/bootstrap-slider',
+      'jquery-overscroll' : 'main/webapp/assets/vendor/jquery.overscroll',
+      'jquery-mousewheel' : 'main/webapp/assets/vendor/jquery.mousewheel'
     },
     shim: {
       'angular' : { deps: [ 'jquery' ], exports: 'angular' },
       'angular-resource': { deps: [ 'angular' ] },
-      'angular-mocks': { deps: [ 'angular' ] }
+      'angular-sanitize': { deps: [ 'angular' ] },
+      'angular-mocks': { deps: [ 'angular' ] },
+      'bootstrap-slider' : { deps: [ 'jquery' ] },
+      'jquery-overscroll': { deps: [ 'jquery' ] },
+      'jquery-mousewheel': { deps: [ 'jquery' ] },
     },
     packages: [
       { name: 'cockpit', location: 'main/webapp/app', main: 'cockpit' },
@@ -41,6 +49,7 @@
     'angular',
     'jquery',
     'angular-resource',
+    'angular-sanitize',
     'angular-mocks',
     'ngDefine' ], function(angular, $) {
 

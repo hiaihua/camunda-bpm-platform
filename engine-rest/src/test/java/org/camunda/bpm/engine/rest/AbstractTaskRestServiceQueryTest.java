@@ -163,6 +163,8 @@ public abstract class AbstractTaskRestServiceQueryTest extends AbstractRestServi
     verifyStringParameterQueryInvocations();
     
     verify(mockQuery).taskUnassigned();
+    verify(mockQuery).active();
+    verify(mockQuery).suspended();
     
     verify(mockQuery).list();
   }
@@ -206,6 +208,8 @@ public abstract class AbstractTaskRestServiceQueryTest extends AbstractRestServi
     parameters.put("nameLike", "aNameLike");
     parameters.put("owner", "anOwner");
     parameters.put("unassigned", "true");
+    parameters.put("active", "true");
+    parameters.put("suspended", "true");
   
     return parameters;
   }
@@ -396,6 +400,46 @@ public abstract class AbstractTaskRestServiceQueryTest extends AbstractRestServi
       .when().get(TASK_QUERY_URL);    
     verify(mockQuery).processVariableValueNotEquals(variableName, variableValue);
   }
+  
+  @Test
+  public void testMultipleVariableParameters() {
+    String variableName1 = "varName";
+    String variableValue1 = "varValue";
+    String variableParameter1 = variableName1 + "_eq_" + variableValue1; 
+    
+    String variableName2 = "anotherVarName";
+    String variableValue2 = "anotherVarValue";
+    String variableParameter2 = variableName2 + "_neq_" + variableValue2;
+    
+    String queryValue = variableParameter1 + "," + variableParameter2;
+    
+    given().queryParam("taskVariables", queryValue)
+      .then().expect().statusCode(Status.OK.getStatusCode())
+      .when().get(TASK_QUERY_URL);    
+    
+    verify(mockQuery).taskVariableValueEquals(variableName1, variableValue1);
+    verify(mockQuery).taskVariableValueNotEquals(variableName2, variableValue2);
+  }
+  
+  @Test
+  public void testMultipleProcessVariableParameters() {
+    String variableName1 = "varName";
+    String variableValue1 = "varValue";
+    String variableParameter1 = variableName1 + "_eq_" + variableValue1; 
+    
+    String variableName2 = "anotherVarName";
+    String variableValue2 = "anotherVarValue";
+    String variableParameter2 = variableName2 + "_neq_" + variableValue2;
+    
+    String queryValue = variableParameter1 + "," + variableParameter2;
+    
+    given().queryParam("processVariables", queryValue)
+      .then().expect().statusCode(Status.OK.getStatusCode())
+      .when().get(TASK_QUERY_URL);    
+    
+    verify(mockQuery).processVariableValueEquals(variableName1, variableValue1);
+    verify(mockQuery).processVariableValueNotEquals(variableName2, variableValue2);
+  }
 
   @Test
   public void testMultipleVariableParametersAsPost() {
@@ -451,6 +495,11 @@ public abstract class AbstractTaskRestServiceQueryTest extends AbstractRestServi
     
     verifyStringParameterQueryInvocations();
     verifyIntegerParameterQueryInvocations();
+    
+    verify(mockQuery).taskUnassigned();
+    verify(mockQuery).active();
+    verify(mockQuery).suspended();
+    
     verify(mockQuery).taskCandidateGroupIn(argThat(new EqualsList(candidateGroups)));
   }
 

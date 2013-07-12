@@ -25,6 +25,7 @@ import org.camunda.bpm.engine.impl.cmd.ActivateProcessInstanceCmd;
 import org.camunda.bpm.engine.impl.cmd.CorrelateMessageCmd;
 import org.camunda.bpm.engine.impl.cmd.DeleteProcessInstanceCmd;
 import org.camunda.bpm.engine.impl.cmd.FindActiveActivityIdsCmd;
+import org.camunda.bpm.engine.impl.cmd.GetActivityInstanceCmd;
 import org.camunda.bpm.engine.impl.cmd.GetExecutionVariableCmd;
 import org.camunda.bpm.engine.impl.cmd.GetExecutionVariablesCmd;
 import org.camunda.bpm.engine.impl.cmd.GetStartFormCmd;
@@ -37,12 +38,15 @@ import org.camunda.bpm.engine.impl.cmd.SignalEventReceivedCmd;
 import org.camunda.bpm.engine.impl.cmd.StartProcessInstanceByMessageCmd;
 import org.camunda.bpm.engine.impl.cmd.StartProcessInstanceCmd;
 import org.camunda.bpm.engine.impl.cmd.SuspendProcessInstanceCmd;
+import org.camunda.bpm.engine.runtime.ActivityInstance;
+import org.camunda.bpm.engine.runtime.EventSubscriptionQuery;
 import org.camunda.bpm.engine.runtime.ExecutionQuery;
 import org.camunda.bpm.engine.runtime.IncidentQuery;
 import org.camunda.bpm.engine.runtime.NativeExecutionQuery;
 import org.camunda.bpm.engine.runtime.NativeProcessInstanceQuery;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.runtime.ProcessInstanceQuery;
+import org.camunda.bpm.engine.runtime.VariableInstanceQuery;
 
 /**
  * @author Tom Baeyens
@@ -100,6 +104,15 @@ public class RuntimeServiceImpl extends ServiceImpl implements RuntimeService {
   
   public IncidentQuery createIncidentQuery() {
     return new IncidentQueryImpl(commandExecutor);
+  }
+  
+
+  public EventSubscriptionQuery createEventSubscriptionQuery() {
+    return new EventSubscriptionQueryImpl(commandExecutor);
+  }
+  
+  public VariableInstanceQuery createVariableInstanceQuery() {
+    return new VariableInstanceQueryImpl(commandExecutor);
   }
   
   public Map<String, Object> getVariables(String executionId) {
@@ -195,6 +208,10 @@ public class RuntimeServiceImpl extends ServiceImpl implements RuntimeService {
 
   public List<String> getActiveActivityIds(String executionId) {
     return commandExecutor.execute(new FindActiveActivityIdsCmd(executionId));
+  }
+  
+  public ActivityInstance getActivityInstance(String processInstanceId) {
+    return commandExecutor.execute(new GetActivityInstanceCmd(processInstanceId));
   }
 
   public FormData getFormInstanceById(String processDefinitionId) {

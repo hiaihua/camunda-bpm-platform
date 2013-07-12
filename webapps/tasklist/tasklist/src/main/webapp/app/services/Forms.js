@@ -26,9 +26,19 @@ define([ "angular" ], function(angular) {
             value = false;
           }
 
-          variablesMap[name] = value;
+          variablesMap[name] = {"value" : value};
         }
         return variablesMap;
+      },
+
+      mapToVariablesArray: function(variables_map) {
+        var variablesArray = [];
+
+        angular.forEach(variables_map, function(variable, name) {
+          variablesArray.push({ name : name, value : variable.value, type : variable.type });
+        });
+
+        return variablesArray;
       },
 
       /**

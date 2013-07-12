@@ -33,13 +33,7 @@ public class SequentialMultiInstanceBehavior extends MultiInstanceActivityBehavi
    * Handles the sequential case of spawning the instances.
    * Will only create one instance, since at most one instance can be active.
    */
-  protected void createInstances(ActivityExecution execution) throws Exception {
-    int nrOfInstances = resolveNrOfInstances(execution);
-    if (nrOfInstances <= 0) {
-      throw new ProcessEngineException("Invalid number of instances: must be positive integer value" 
-              + ", but was " + nrOfInstances);
-    }
-    
+  protected void createInstances(ActivityExecution execution, int nrOfInstances) throws Exception {    
     setLoopVariable(execution, NUMBER_OF_INSTANCES, nrOfInstances);
     setLoopVariable(execution, NUMBER_OF_COMPLETED_INSTANCES, 0);
     setLoopVariable(execution, LOOP_COUNTER, 0);
@@ -56,7 +50,7 @@ public class SequentialMultiInstanceBehavior extends MultiInstanceActivityBehavi
    */
   public void leave(ActivityExecution execution) {
     callActivityEndListeners(execution);
-    
+        
     int loopCounter = getLoopVariable(execution, LOOP_COUNTER) + 1;
     int nrOfInstances = getLoopVariable(execution, NUMBER_OF_INSTANCES);
     int nrOfCompletedInstances = getLoopVariable(execution, NUMBER_OF_COMPLETED_INSTANCES) + 1;
@@ -68,7 +62,7 @@ public class SequentialMultiInstanceBehavior extends MultiInstanceActivityBehavi
     
     if (loopCounter == nrOfInstances || completionConditionSatisfied(execution)) {
       super.leave(execution);
-    } else {
+    } else {      
       try {
         executeOriginalBehavior(execution, loopCounter);
       } catch (BpmnError error) {

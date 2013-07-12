@@ -1,3 +1,15 @@
+/* Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.camunda.bpm.engine.rest.sub.runtime.impl;
 
 import java.util.Map;
@@ -8,11 +20,13 @@ import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.ProcessEngineException;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.rest.dto.runtime.ExecutionDto;
-import org.camunda.bpm.engine.rest.dto.runtime.VariableListDto;
+import org.camunda.bpm.engine.rest.dto.runtime.ExecutionTriggerDto;
 import org.camunda.bpm.engine.rest.exception.InvalidRequestException;
 import org.camunda.bpm.engine.rest.exception.RestException;
 import org.camunda.bpm.engine.rest.sub.VariableResource;
+import org.camunda.bpm.engine.rest.sub.runtime.EventSubscriptionResource;
 import org.camunda.bpm.engine.rest.sub.runtime.ExecutionResource;
+import org.camunda.bpm.engine.rest.util.DtoUtil;
 import org.camunda.bpm.engine.runtime.Execution;
 
 public class ExecutionResourceImpl implements ExecutionResource {
@@ -38,10 +52,11 @@ public class ExecutionResourceImpl implements ExecutionResource {
   }
 
   @Override
-  public void signalExecution(VariableListDto variables) {
+  public void signalExecution(ExecutionTriggerDto triggerDto) {
     RuntimeService runtimeService = engine.getRuntimeService();
+    Map<String, Object> variables = DtoUtil.toMap(triggerDto.getVariables());
     try {
-      runtimeService.signal(executionId, variables.toMap());
+      runtimeService.signal(executionId, variables);
     } catch (ProcessEngineException e) {
       throw new RestException(Status.INTERNAL_SERVER_ERROR, e, "Cannot signal execution " + executionId + ": " + e.getMessage());
     }
@@ -54,20 +69,8 @@ public class ExecutionResourceImpl implements ExecutionResource {
   }
 
   @Override
-  public void triggerMessageEvent(String messageName, VariableListDto variablesDto) {
-    RuntimeService runtimeService = engine.getRuntimeService();
-    
-    Map<String, Object> variables = variablesDto.toMap();
-    
-    try {
-      runtimeService.messageEventReceived(messageName, executionId, variables);
-    } catch (ProcessEngineException e) {
-      throw new RestException(Status.INTERNAL_SERVER_ERROR, e, "Cannot trigger message " + messageName +
-          " for execution " + executionId + ": " + e.getMessage());
-    }
+  public EventSubscriptionResource getMessageEventSubscription(String messageName) {
+    return new MessageEventSubscriptionResource(engine, executionId, messageName);
   }
-
-
-
 
 }

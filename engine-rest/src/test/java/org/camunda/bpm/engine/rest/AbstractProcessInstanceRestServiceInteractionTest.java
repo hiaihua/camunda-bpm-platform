@@ -1,14 +1,17 @@
 package org.camunda.bpm.engine.rest;
 
 import static com.jayway.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.any;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,13 +31,15 @@ import org.camunda.bpm.engine.rest.helper.EqualsList;
 import org.camunda.bpm.engine.rest.helper.EqualsMap;
 import org.camunda.bpm.engine.rest.helper.ExampleVariableObject;
 import org.camunda.bpm.engine.rest.helper.MockProvider;
-import org.camunda.bpm.engine.rest.util.RequestBodyUtil;
+import org.camunda.bpm.engine.rest.util.VariablesBuilder;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.runtime.ProcessInstanceQuery;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.jayway.restassured.http.ContentType;
+import com.jayway.restassured.response.Response;
 
 public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
     AbstractRestServiceTest {
@@ -42,6 +47,7 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
   protected static final String PROCESS_INSTANCE_URL = TEST_RESOURCE_ROOT_PATH + "/process-instance/{id}";
   protected static final String PROCESS_INSTANCE_VARIABLES_URL = PROCESS_INSTANCE_URL + "/variables";
   protected static final String SINGLE_PROCESS_INSTANCE_VARIABLE_URL = PROCESS_INSTANCE_VARIABLES_URL + "/{varId}";
+  protected static final String PROCESS_INSTANCE_ACTIVIY_INSTANCES_URL = PROCESS_INSTANCE_URL + "/activity-instances";
   
   protected static final Map<String, Object> EXAMPLE_OBJECT_VARIABLES = new HashMap<String, Object>();
   static {
@@ -51,37 +57,110 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
     
     EXAMPLE_OBJECT_VARIABLES.put(EXAMPLE_VARIABLE_KEY, variableValue);
   }
-
+  
   private RuntimeServiceImpl runtimeServiceMock;
   
   @Before
   public void setUpRuntimeData() {
     runtimeServiceMock = mock(RuntimeServiceImpl.class);
+    // variables
     when(runtimeServiceMock.getVariables(MockProvider.EXAMPLE_PROCESS_INSTANCE_ID)).thenReturn(EXAMPLE_VARIABLES);
     when(runtimeServiceMock.getVariables(MockProvider.ANOTHER_EXAMPLE_PROCESS_INSTANCE_ID)).thenReturn(EXAMPLE_OBJECT_VARIABLES);
+    
+    // activity instances
+    when(runtimeServiceMock.getActivityInstance(MockProvider.EXAMPLE_PROCESS_INSTANCE_ID)).thenReturn(EXAMPLE_ACTIVITY_INSTANCE);
+    
+    // runtime service
     when(processEngine.getRuntimeService()).thenReturn(runtimeServiceMock);
   }
   
   @Test
+  public void testGetActivityInstanceTree() {
+    Response response = given().pathParam("id", MockProvider.EXAMPLE_PROCESS_INSTANCE_ID)
+        .then().expect().statusCode(Status.OK.getStatusCode())
+        .body("id", equalTo(EXAMPLE_ACTIVITY_INSTANCE_ID))
+        .body("parentActivityInstanceId", equalTo(EXAMPLE_PARENT_ACTIVITY_INSTANCE_ID))
+        .body("activityId", equalTo(EXAMPLE_ACTIVITY_ID))
+        .body("processInstanceId", equalTo(EXAMPLE_PROCESS_INSTANCE_ID))
+        .body("processDefinitionId", equalTo(EXAMPLE_PROCESS_DEFINITION_ID))
+        .body("executionIds", not(empty()))
+        .body("executionIds[0]", equalTo(EXAMPLE_EXECUTION_ID))
+        .body("childActivityInstances", not(empty()))
+        .body("childActivityInstances[0].id", equalTo(CHILD_EXAMPLE_ACTIVITY_INSTANCE_ID))
+        .body("childActivityInstances[0].parentActivityInstanceId", equalTo(CHILD_EXAMPLE_PARENT_ACTIVITY_INSTANCE_ID))
+        .body("childActivityInstances[0].activityId", equalTo(CHILD_EXAMPLE_ACTIVITY_ID))
+        .body("childActivityInstances[0].processInstanceId", equalTo(CHILD_EXAMPLE_PROCESS_INSTANCE_ID))
+        .body("childActivityInstances[0].processDefinitionId", equalTo(CHILD_EXAMPLE_PROCESS_DEFINITION_ID))
+        .body("childActivityInstances[0].executionIds", not(empty()))
+        .body("childActivityInstances[0].childActivityInstances", empty())
+        .body("childActivityInstances[0].childTransitionInstances", empty())
+        .body("childTransitionInstances", not(empty()))
+        .body("childTransitionInstances[0].id", equalTo(CHILD_EXAMPLE_ACTIVITY_INSTANCE_ID))
+        .body("childTransitionInstances[0].parentActivityInstanceId", equalTo(CHILD_EXAMPLE_PARENT_ACTIVITY_INSTANCE_ID))
+        .body("childTransitionInstances[0].targetActivityId", equalTo(CHILD_EXAMPLE_ACTIVITY_ID))
+        .body("childTransitionInstances[0].processInstanceId", equalTo(CHILD_EXAMPLE_PROCESS_INSTANCE_ID))
+        .body("childTransitionInstances[0].processDefinitionId", equalTo(CHILD_EXAMPLE_PROCESS_DEFINITION_ID))
+        .body("childTransitionInstances[0].executionId", equalTo(EXAMPLE_EXECUTION_ID))
+        .when().get(PROCESS_INSTANCE_ACTIVIY_INSTANCES_URL);
+    
+    Assert.assertEquals("Should return exactly eight properties", 8, response.jsonPath().getMap("").size());
+  }
+  
+  @Test
+  public void testGetActivityInstanceTreeForNonExistingProcessInstance() {
+    when(runtimeServiceMock.getActivityInstance(anyString())).thenReturn(null);
+    
+    given().pathParam("id", "aNonExistingProcessInstanceId")
+      .then().expect().statusCode(Status.NOT_FOUND.getStatusCode()).contentType(ContentType.JSON)
+      .body("type", equalTo(InvalidRequestException.class.getSimpleName()))
+      .body("message", equalTo("Process instance with id aNonExistingProcessInstanceId does not exist"))
+      .when().get(PROCESS_INSTANCE_ACTIVIY_INSTANCES_URL);
+  }
+  
+  @Test
+  public void testGetActivityInstanceTreeWithInternalError() {
+    when(runtimeServiceMock.getActivityInstance(anyString())).thenThrow(new ProcessEngineException("expected exception"));
+    
+    given().pathParam("id", "aNonExistingProcessInstanceId")
+      .then().expect().statusCode(Status.INTERNAL_SERVER_ERROR.getStatusCode()).contentType(ContentType.JSON)
+      .body("type", equalTo(InvalidRequestException.class.getSimpleName()))
+      .body("message", equalTo("expected exception"))
+      .when().get(PROCESS_INSTANCE_ACTIVIY_INSTANCES_URL);
+  }
+  
+  @Test
   public void testGetVariables() {
-    given().pathParam("id", MockProvider.EXAMPLE_PROCESS_INSTANCE_ID)
+    Response response = given().pathParam("id", MockProvider.EXAMPLE_PROCESS_INSTANCE_ID)
       .then().expect().statusCode(Status.OK.getStatusCode())
-      .body("variables.size()", is(1))
-      .body("variables[0].name", equalTo(EXAMPLE_VARIABLE_KEY))
-      .body("variables[0].value", equalTo(EXAMPLE_VARIABLE_VALUE))
-      .body("variables[0].type", equalTo(String.class.getSimpleName()))
+      .body(EXAMPLE_VARIABLE_KEY, notNullValue())
+      .body(EXAMPLE_VARIABLE_KEY + ".value", equalTo(EXAMPLE_VARIABLE_VALUE))
+      .body(EXAMPLE_VARIABLE_KEY + ".type", equalTo(String.class.getSimpleName()))
       .when().get(PROCESS_INSTANCE_VARIABLES_URL);
+    
+    Assert.assertEquals("Should return exactly one variable", 1, response.jsonPath().getMap("").size());
   }
 
   @Test
   public void testJavaObjectVariableSerialization() {
-    given().pathParam("id", MockProvider.ANOTHER_EXAMPLE_PROCESS_INSTANCE_ID)
+    Response response = given().pathParam("id", MockProvider.ANOTHER_EXAMPLE_PROCESS_INSTANCE_ID)
       .then().expect().statusCode(Status.OK.getStatusCode())
-      .body("variables.size()", is(1))
-      .body("variables[0].name", equalTo(EXAMPLE_VARIABLE_KEY))
-      .body("variables[0].value.property1", equalTo("aPropertyValue"))
-      .body("variables[0].value.property2", equalTo(true))
-      .body("variables[0].type", equalTo(ExampleVariableObject.class.getSimpleName()))
+      .body(EXAMPLE_VARIABLE_KEY, notNullValue())
+      .body(EXAMPLE_VARIABLE_KEY + ".value.property1", equalTo("aPropertyValue"))
+      .body(EXAMPLE_VARIABLE_KEY + ".value.property2", equalTo(true))
+      .body(EXAMPLE_VARIABLE_KEY + ".type", equalTo(ExampleVariableObject.class.getSimpleName()))
+      .when().get(PROCESS_INSTANCE_VARIABLES_URL);
+    
+    Assert.assertEquals("Should return exactly one variable", 1, response.jsonPath().getMap("").size());
+  }
+
+  @Test
+  public void testGetVariablesForNonExistingProcessInstance() {
+    when(runtimeServiceMock.getVariables(anyString())).thenThrow(new ProcessEngineException("expected exception"));
+    
+    given().pathParam("id", "aNonExistingProcessInstanceId")
+      .then().expect().statusCode(Status.INTERNAL_SERVER_ERROR.getStatusCode()).contentType(ContentType.JSON)
+      .body("type", equalTo(ProcessEngineException.class.getSimpleName()))
+      .body("message", equalTo("expected exception"))
       .when().get(PROCESS_INSTANCE_VARIABLES_URL);
   }
 
@@ -115,17 +194,6 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
       .body("type", equalTo(InvalidRequestException.class.getSimpleName()))
       .body("message", equalTo("Process instance with id aNonExistingInstanceId does not exist"))
       .when().get(PROCESS_INSTANCE_URL);
-  }
-
-  @Test
-  public void testGetVariablesForNonExistingProcessInstance() {
-    when(runtimeServiceMock.getVariables(anyString())).thenThrow(new ProcessEngineException("expected exception"));
-    
-    given().pathParam("id", "aNonExistingProcessInstanceId")
-      .then().expect().statusCode(Status.INTERNAL_SERVER_ERROR.getStatusCode()).contentType(ContentType.JSON)
-      .body("type", equalTo(ProcessEngineException.class.getSimpleName()))
-      .body("message", equalTo("expected exception"))
-      .when().get(PROCESS_INSTANCE_VARIABLES_URL);
   }
   
   @Test
@@ -172,9 +240,7 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
     
     Map<String, Object> messageBodyJson = new HashMap<String, Object>();
     
-    List<Map<String, Object>> modifications = new ArrayList<Map<String, Object>>();
-    modifications.add(RequestBodyUtil.createVariableJsonObject(variableKey, variableValue));
-    
+    Map<String, Object> modifications = VariablesBuilder.create().variable(variableKey, variableValue).getVariables();
     messageBodyJson.put("modifications", modifications);
     
     List<String> deletions = new ArrayList<String>();
@@ -200,8 +266,7 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
     
     Map<String, Object> messageBodyJson = new HashMap<String, Object>();
     
-    List<Map<String, Object>> modifications = new ArrayList<Map<String, Object>>();
-    modifications.add(RequestBodyUtil.createVariableJsonObject(variableKey, variableValue));
+    Map<String, Object> modifications = VariablesBuilder.create().variable(variableKey, variableValue).getVariables();
     
     messageBodyJson.put("modifications", modifications);
     
@@ -229,7 +294,6 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
     given().pathParam("id", MockProvider.EXAMPLE_PROCESS_INSTANCE_ID).pathParam("varId", variableKey)
       .then().expect().statusCode(Status.OK.getStatusCode())
       .body("value", is(123))
-      .body("name", is(variableKey))
       .body("type", is("Integer"))
       .when().get(SINGLE_PROCESS_INSTANCE_VARIABLE_URL);
   }
@@ -266,8 +330,7 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
     String variableKey = "aVariableKey";
     String variableValue = "aVariableValue";
     
-    Map<String, Object> variableJson = new HashMap<String, Object>();
-    variableJson.put("value", variableValue);
+    Map<String, Object> variableJson = VariablesBuilder.getVariableValueMap(variableValue);
     
     given().pathParam("id", MockProvider.EXAMPLE_PROCESS_INSTANCE_ID).pathParam("varId", variableKey)
       .contentType(ContentType.JSON).body(variableJson)
@@ -296,8 +359,7 @@ public abstract class AbstractProcessInstanceRestServiceInteractionTest extends
     String variableKey = "aVariableKey";
     String variableValue = "aVariableValue";
     
-    Map<String, Object> variableJson = new HashMap<String, Object>();
-    variableJson.put("value", variableValue);
+    Map<String, Object> variableJson = VariablesBuilder.getVariableValueMap(variableValue);
     
     doThrow(new ProcessEngineException("expected exception"))
       .when(runtimeServiceMock).setVariable(eq(MockProvider.EXAMPLE_PROCESS_INSTANCE_ID), eq(variableKey), eq(variableValue));
