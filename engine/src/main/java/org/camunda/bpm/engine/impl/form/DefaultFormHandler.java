@@ -130,8 +130,8 @@ public class DefaultFormHandler implements FormHandler {
     formData.setFormProperties(formProperties);
   }
 
-  public void submitFormProperties(Map<String, String> properties, ExecutionEntity execution) {
-    Map<String, String> propertiesCopy = new HashMap<String, String>(properties);
+  public void submitFormProperties(Map<String, Object> properties, ExecutionEntity execution) {
+    Map<String, Object> propertiesCopy = new HashMap<String, Object>(properties);
     for (FormPropertyHandler formPropertyHandler: formPropertyHandlers) {
       // submitFormProperty will remove all the keys which it takes care of
       formPropertyHandler.submitFormProperty(execution, propertiesCopy);

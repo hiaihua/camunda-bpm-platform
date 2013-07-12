@@ -55,7 +55,7 @@ public class TaskFormsTest extends PluggableProcessEngineTestCase {
     assertEquals("org/camunda/bpm/engine/test/examples/taskforms/request.form", formService.getStartFormData(processDefinitionId).getFormKey());
 
     // Define variables that would be filled in through the form
-    Map<String, String> formProperties = new HashMap<String, String>();
+    Map<String, Object> formProperties = new HashMap<String, Object>();
     formProperties.put("employeeName", "kermit");
     formProperties.put("numberOfDays", "4");
     formProperties.put("vacationMotivation", "I'm tired");

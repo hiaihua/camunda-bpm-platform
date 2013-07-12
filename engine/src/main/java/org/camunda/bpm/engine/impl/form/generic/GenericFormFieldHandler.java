@@ -1,12 +1,8 @@
 package org.camunda.bpm.engine.impl.form.generic;
 
-import java.util.concurrent.Callable;
+import java.util.Map;
 
-import org.camunda.bpm.application.ProcessApplicationReference;
 import org.camunda.bpm.engine.delegate.Expression;
-import org.camunda.bpm.engine.impl.application.ProcessApplicationManager;
-import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
-import org.camunda.bpm.engine.impl.context.Context;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
 
 /**
@@ -24,6 +20,14 @@ class GenericFormFieldHandler {
 
     public GenericFormFieldHandler() {
     }
+    
+    public void validate(Map<String, Object> properties, final ExecutionEntity execution) {
+        Object value = properties.get(id);
+        
+        for(GenericFormFieldValidationConstraintHandler constraint : validation.getConstraints()) {
+            constraint.validate(value, execution);
+        }
+    }
 
     public <T> GenericFormField initializeGenericFormField(final ExecutionEntity execution) {
         GenericFormField genericFormField = new GenericFormField();
@@ -33,27 +37,7 @@ class GenericFormFieldHandler {
         genericFormField.setType(type);
 
         if (defaultValue != null) {
-            
-            String deploymentId = execution.getProcessDefinition().getDeploymentId();
-            
-            ProcessEngineConfigurationImpl processEngineConfiguration = Context.getProcessEngineConfiguration();
-            ProcessApplicationManager processApplicationManager = processEngineConfiguration.getProcessApplicationManager();
-            
-            ProcessApplicationReference pa = processApplicationManager.getProcessApplicationForDeployment(deploymentId);
-            
-            Object value = null;
-            
-            if(pa!=null && !pa.getName().equals(Context.getCurrentProcessApplication())) {
-            	value = Context.executeWithinProcessApplication(new Callable<Object>() {
-					public Object call() throws Exception {
-						return defaultValue.getValue(execution);
-					}
-				}, pa);
-            } else {
-            	value = defaultValue.getValue(execution);
-            }
-            
-            genericFormField.setDefaultValue(value);
+            genericFormField.setDefaultValue(ApplicationSwitchUtil.getValue(defaultValue, execution));
         }
 
         genericFormField.setValidation(validation.initializeGenericFormFieldValidation(execution));

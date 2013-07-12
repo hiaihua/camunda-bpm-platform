@@ -6,7 +6,7 @@ package org.camunda.bpm.engine.rest.dto.task;
  */
 public class GenericFormFieldValidationConstraintDto {
     private String name;
-    private String config;
+    private Object config;
     
     public String getName() {
         return name;
@@ -16,11 +16,11 @@ public class GenericFormFieldValidationConstraintDto {
         this.name = name;
     }
 
-    public String getConfig() {
+    public Object getConfig() {
         return config;
     }
 
-    public void setConfig(String config) {
+    public void setConfig(Object config) {
         this.config = config;
     }
 }

@@ -20,10 +20,10 @@ import org.camunda.bpm.engine.FormService;
 import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.ProcessEngineException;
 import org.camunda.bpm.engine.TaskService;
-import org.camunda.bpm.engine.form.FormData;
 import org.camunda.bpm.engine.impl.form.generic.GenericForm;
 import org.camunda.bpm.engine.rest.dto.task.CompleteTaskDto;
 import org.camunda.bpm.engine.rest.dto.task.FormDto;
+import org.camunda.bpm.engine.rest.dto.task.SaveGenericFormDto;
 import org.camunda.bpm.engine.rest.dto.task.TaskDto;
 import org.camunda.bpm.engine.rest.dto.task.UserIdDto;
 import org.camunda.bpm.engine.rest.exception.InvalidRequestException;
@@ -34,79 +34,94 @@ import org.camunda.bpm.engine.task.Task;
 
 public class TaskResourceImpl implements TaskResource {
 
-  private ProcessEngine engine;
-  private String taskId;
-  
-  public TaskResourceImpl(ProcessEngine engine, String taskId) {
-    this.engine = engine;
-    this.taskId = taskId;
-  }
-  
-  @Override
-  public void claim(UserIdDto dto) {
-    TaskService taskService = engine.getTaskService();
+    private ProcessEngine engine;
+    private String taskId;
 
-    taskService.claim(taskId, dto.getUserId());
-  }
-
-  @Override
-  public void unclaim() {
-    engine.getTaskService().setAssignee(taskId, null);
-  }
-
-  @Override
-  public void complete(CompleteTaskDto dto) {
-    TaskService taskService = engine.getTaskService();
-
-    Map<String, Object> variables = DtoUtil.toMap(dto.getVariables());
-    taskService.complete(taskId, variables);
-  }
-
-  @Override
-  public void delegate(UserIdDto delegatedUser) {
-    engine.getTaskService().delegateTask(taskId, delegatedUser.getUserId());
-  }
-
-  @Override
-  public TaskDto getTask() {
-    Task task = getTaskById(taskId);
-    if (task == null) {
-      throw new InvalidRequestException(Status.BAD_REQUEST, "No task id supplied");
+    public TaskResourceImpl(ProcessEngine engine, String taskId) {
+        this.engine = engine;
+        this.taskId = taskId;
     }
-    
-    return TaskDto.fromTask(task);
-  }
 
-  @Override
-  public FormDto getForm() {
-    FormService formService = engine.getFormService();
+    @Override
+    public void claim(UserIdDto dto) {
+        TaskService taskService = engine.getTaskService();
 
-    GenericForm genericForm;
-    try {
-      genericForm = formService.getGenericForm(taskId);
-      //formData = formService.getTaskFormData(taskId);
-    } catch (ProcessEngineException e) {
-      throw new RestException(Status.BAD_REQUEST, e, "Cannot get form for task " + taskId);
+        taskService.claim(taskId, dto.getUserId());
     }
-    
-    return FormDto.fromFormData(genericForm);
-  }
 
-  @Override
-  public void resolve(CompleteTaskDto dto) {
-    TaskService taskService = engine.getTaskService();
-    Map<String, Object> variables = DtoUtil.toMap(dto.getVariables());
-    taskService.resolveTask(taskId, variables);
-  }
-  
+    @Override
+    public void unclaim() {
+        engine.getTaskService().setAssignee(taskId, null);
+    }
 
-  /**
-   * Returns the task with the given id
-   *
-   * @param id
-   * @return
-   */
-  private Task getTaskById(String id) {
-    return engine.getTaskService().createTaskQuery().taskId(id).singleResult();
-  }
+    @Override
+    public void complete(CompleteTaskDto dto) {
+        TaskService taskService = engine.getTaskService();
+
+        Map<String, Object> variables = DtoUtil.toMap(dto.getVariables());
+        taskService.complete(taskId, variables);
+    }
+
+    @Override
+    public void delegate(UserIdDto delegatedUser) {
+        engine.getTaskService().delegateTask(taskId, delegatedUser.getUserId());
+    }
+
+    @Override
+    public TaskDto getTask() {
+        Task task = getTaskById(taskId);
+        if (task == null) {
+            throw new InvalidRequestException(Status.BAD_REQUEST, "No task id supplied");
+        }
+
+        return TaskDto.fromTask(task);
+    }
+
+    @Override
+    public FormDto getForm() {
+        FormService formService = engine.getFormService();
+
+        GenericForm genericForm;
+        try {
+            genericForm = formService.getGenericForm(taskId);
+            //formData = formService.getTaskFormData(taskId);
+        } catch (ProcessEngineException e) {
+            throw new RestException(Status.BAD_REQUEST, e, "Cannot get form for task " + taskId);
+        }
+
+        return FormDto.fromFormData(genericForm);
+    }
+
+    @Override
+    public void resolveGenericForm(SaveGenericFormDto dto) {
+        FormService formService = engine.getFormService();
+
+        Map<String, Object> variables = DtoUtil.toMapGenericForm(dto.getVariables());
+        formService.resolveGenericForm(taskId, variables);
+    }
+
+    @Override
+    public void completeGenericForm(SaveGenericFormDto dto) {
+        FormService formService = engine.getFormService();
+
+        Map<String, Object> variables = DtoUtil.toMapGenericForm(dto.getVariables());
+        formService.completeGenericForm(taskId, variables);
+    }
+
+    @Override
+    public void resolve(CompleteTaskDto dto) {
+        TaskService taskService = engine.getTaskService();
+        Map<String, Object> variables = DtoUtil.toMap(dto.getVariables());
+        taskService.resolveTask(taskId, variables);
+    }
+
+    /**
+     * Returns the task with the given id
+     *
+     * @param id
+     * @return
+     */
+    private Task getTaskById(String id) {
+        return engine.getTaskService().createTaskQuery().taskId(id).singleResult();
+    }
 }

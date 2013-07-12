@@ -40,4 +40,8 @@ public class GenericFormGroupHandler {
     void addFormField(GenericFormFieldHandler formField) {
         this.formFieldHandlers.add(formField);
     }
+    
+    protected List<GenericFormFieldHandler> getFormFieldHandlers() {
+        return formFieldHandlers;
+    }
 }

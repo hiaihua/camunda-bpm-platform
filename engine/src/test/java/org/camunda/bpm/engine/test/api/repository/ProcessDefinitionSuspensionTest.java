@@ -243,14 +243,14 @@ public class ProcessDefinitionSuspensionTest extends PluggableProcessEngineTestC
     repositoryService.suspendProcessDefinitionById(processDefinition.getId());
     
     try {
-      formService.submitStartFormData(processDefinition.getId(), new HashMap<String, String>());
+      formService.submitStartFormData(processDefinition.getId(), new HashMap<String, Object>());
       fail();
     } catch (ProcessEngineException e) {
       // This is expected
     }
     
     try {
-      formService.submitStartFormData(processDefinition.getId(), "someKey", new HashMap<String, String>());
+      formService.submitStartFormData(processDefinition.getId(), "someKey", new HashMap<String, Object>());
       fail();
     } catch (ProcessEngineException e) {
       e.printStackTrace();

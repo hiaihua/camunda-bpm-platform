@@ -26,16 +26,16 @@ public class HistoricFormPropertyEntity extends HistoricDetailEntity implements 
   private static final long serialVersionUID = 1L;
   
   protected String propertyId;
-  protected String propertyValue;
+  protected Object propertyValue;
   
   public HistoricFormPropertyEntity() {
   }
 
-  public HistoricFormPropertyEntity(ExecutionEntity execution, String propertyId, String propertyValue) {
+  public HistoricFormPropertyEntity(ExecutionEntity execution, String propertyId, Object propertyValue) {
     this(execution, propertyId, propertyValue, null);
   }
   
-  public HistoricFormPropertyEntity(ExecutionEntity execution, String propertyId, String propertyValue, String taskId) {
+  public HistoricFormPropertyEntity(ExecutionEntity execution, String propertyId, Object propertyValue, String taskId) {
     this.processInstanceId = execution.getProcessInstanceId();
     this.executionId = execution.getId();
     this.taskId = taskId;
@@ -58,10 +58,10 @@ public class HistoricFormPropertyEntity extends HistoricDetailEntity implements 
   }
   
   public String getPropertyValue() {
-    return propertyValue;
+    return propertyValue.toString();
   }
   
-  public void setPropertyValue(String propertyValue) {
+  public void setPropertyValue(Object propertyValue) {
     this.propertyValue = propertyValue;
   }
 }

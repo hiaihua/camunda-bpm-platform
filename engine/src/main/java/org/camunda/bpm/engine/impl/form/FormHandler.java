@@ -31,5 +31,5 @@ public interface FormHandler {
 
   void parseConfiguration(Element activityElement, DeploymentEntity deployment, ProcessDefinitionEntity processDefinition, BpmnParse bpmnParse);
 
-  void submitFormProperties(Map<String, String> properties, ExecutionEntity execution);
+  void submitFormProperties(Map<String, Object> properties, ExecutionEntity execution);
 }

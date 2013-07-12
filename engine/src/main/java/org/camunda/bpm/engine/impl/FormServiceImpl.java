@@ -18,12 +18,14 @@ import java.util.Map;
 import org.camunda.bpm.engine.FormService;
 import org.camunda.bpm.engine.form.StartFormData;
 import org.camunda.bpm.engine.form.TaskFormData;
+import org.camunda.bpm.engine.impl.cmd.CompleteGenericFormTaskCmd;
 import org.camunda.bpm.engine.impl.cmd.GetFormKeyCmd;
 import org.camunda.bpm.engine.impl.cmd.GetGenericFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetRenderedStartFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetRenderedTaskFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetStartFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetTaskFormCmd;
+import org.camunda.bpm.engine.impl.cmd.ResolveGenericFormTaskCmd;
 import org.camunda.bpm.engine.impl.cmd.SubmitStartFormCmd;
 import org.camunda.bpm.engine.impl.cmd.SubmitTaskFormCmd;
 import org.camunda.bpm.engine.impl.form.generic.GenericForm;
@@ -39,49 +41,69 @@ public class FormServiceImpl extends ServiceImpl implements FormService {
     public GenericForm getGenericForm(String taskId) {
         return commandExecutor.execute(new GetGenericFormCmd(taskId));
     }
-    
+
+    @Override 
     public Object getRenderedStartForm(String processDefinitionId) {
         return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, null));
     }
-
+    
+    @Override
     public Object getRenderedStartForm(String processDefinitionId, String engineName) {
         return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, engineName));
     }
 
+    @Override
     public Object getRenderedTaskForm(String taskId) {
         return commandExecutor.execute(new GetRenderedTaskFormCmd(taskId, null));
     }
 
+    @Override
     public Object getRenderedTaskForm(String taskId, String engineName) {
         return commandExecutor.execute(new GetRenderedTaskFormCmd(taskId, engineName));
     }
 
+    @Override
     public StartFormData getStartFormData(String processDefinitionId) {
         return commandExecutor.execute(new GetStartFormCmd(processDefinitionId));
     }
 
+    @Override
     public TaskFormData getTaskFormData(String taskId) {
         return commandExecutor.execute(new GetTaskFormCmd(taskId));
     }
 
-    public ProcessInstance submitStartFormData(String processDefinitionId, Map<String, String> properties) {
+    @Override
+    public ProcessInstance submitStartFormData(String processDefinitionId, Map<String, Object> properties) {
         return commandExecutor.execute(new SubmitStartFormCmd(processDefinitionId, null, properties));
     }
 
-    public ProcessInstance submitStartFormData(String processDefinitionId, String businessKey, Map<String, String> properties) {
+    @Override
+    public ProcessInstance submitStartFormData(String processDefinitionId, String businessKey, Map<String, Object> properties) {
         return commandExecutor.execute(new SubmitStartFormCmd(processDefinitionId, businessKey, properties));
     }
 
-    public void submitTaskFormData(String taskId, Map<String, String> properties) {
+    @Override
+    public void submitTaskFormData(String taskId, Map<String, Object> properties) {
         commandExecutor.execute(new SubmitTaskFormCmd(taskId, properties));
     }
-
+    
+    @Override
     public String getStartFormKey(String processDefinitionId) {
         return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId));
     }
-
+    
+    @Override
     public String getTaskFormKey(String processDefinitionId, String taskDefinitionKey) {
         return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId, taskDefinitionKey));
     }
-    
+
+    @Override
+    public void resolveGenericForm(String taskId, Map<String, Object> variables) {
+        commandExecutor.execute(new ResolveGenericFormTaskCmd(taskId, variables));
+    }
+
+    @Override
+    public void completeGenericForm(String taskId, Map<String, Object> variables) {
+        commandExecutor.execute(new CompleteGenericFormTaskCmd(taskId, variables));
+    }
 }

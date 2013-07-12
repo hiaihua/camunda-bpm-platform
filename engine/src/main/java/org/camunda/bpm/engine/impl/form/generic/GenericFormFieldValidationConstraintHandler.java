@@ -8,6 +8,7 @@ import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
  * @author Michael Siebers <info@msiebers.de>
  */
 class GenericFormFieldValidationConstraintHandler {
+
     private String name;
     private Expression config;
 
@@ -29,17 +30,30 @@ class GenericFormFieldValidationConstraintHandler {
 
     GenericFormFieldValidationConstraint initializeGenericFormFieldValidationConstraint(ExecutionEntity execution) {
         GenericFormFieldValidationConstraint constraint = new GenericFormFieldValidationConstraint();
-        
-        constraint.setName(name);
-        
-        if (config != null) {
-            Object value = config.getValue(execution);
 
-            if (value != null) {
-                constraint.setConfig(value.toString());
+        constraint.setName(name);
+
+        if (config != null) {
+            constraint.setConfig(ApplicationSwitchUtil.getValue(config, execution));
+        }
+
+        return constraint;
+    }
+
+    void validate(Object value, ExecutionEntity execution) {
+        if (name.equals("validator")) {
+            GenericFormFieldValidator validator = (GenericFormFieldValidator)ApplicationSwitchUtil.getValue(config, execution);
+            validator.validate(value, execution);
+            
+        } else if (name.equals("max-length")) {
+
+            if (value == null || value.toString().length() >= Integer.parseInt(config.toString()) || value.toString().length() == 0) {
+                throw new RuntimeException();
+            }
+        } else if (name.equals("required)")) {
+            if (value == null || value.toString().length() == 0) {
+                throw new RuntimeException();
             }
         }
-        
-        return constraint;
     }
 }

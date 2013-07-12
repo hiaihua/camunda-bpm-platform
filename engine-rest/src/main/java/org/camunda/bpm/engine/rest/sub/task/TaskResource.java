@@ -21,6 +21,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.camunda.bpm.engine.rest.dto.task.CompleteTaskDto;
 import org.camunda.bpm.engine.rest.dto.task.FormDto;
+import org.camunda.bpm.engine.rest.dto.task.SaveGenericFormDto;
 import org.camunda.bpm.engine.rest.dto.task.TaskDto;
 import org.camunda.bpm.engine.rest.dto.task.UserIdDto;
 
@@ -34,6 +35,16 @@ public interface TaskResource {
   @Path("/form")
   @Produces(MediaType.APPLICATION_JSON)
   FormDto getForm();
+  
+  @POST
+  @Path("/form/complete")
+  @Produces(MediaType.APPLICATION_JSON)
+  void completeGenericForm(SaveGenericFormDto saveGenericFormDto);
+  
+  @POST
+  @Path("/form/resolve")
+  @Produces(MediaType.APPLICATION_JSON)
+  void resolveGenericForm(SaveGenericFormDto saveGenericFormDto);
   
   @POST
   @Path("/claim")

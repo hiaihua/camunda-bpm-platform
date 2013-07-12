@@ -11,22 +11,24 @@ import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
 class GenericFormFieldValidationHandler {
 
     private List<GenericFormFieldValidationConstraintHandler> constraints = new ArrayList<GenericFormFieldValidationConstraintHandler>();
-    
+
     public void addConstraint(GenericFormFieldValidationConstraintHandler constraint) {
         this.constraints.add(constraint);
     }
-    
+
     public List<GenericFormFieldValidationConstraintHandler> getConstraints() {
         return this.constraints;
     }
 
     public GenericFormFieldValidation initializeGenericFormFieldValidation(ExecutionEntity execution) {
         GenericFormFieldValidation validation = new GenericFormFieldValidation();
-        
+
         for (GenericFormFieldValidationConstraintHandler constraint : constraints) {
-            validation.addConstraint(constraint.initializeGenericFormFieldValidationConstraint(execution));
+            if (!constraint.getName().equals("validator")) {
+                validation.addConstraint(constraint.initializeGenericFormFieldValidationConstraint(execution));
+            }
         }
-        
+
         return validation;
     }
 }

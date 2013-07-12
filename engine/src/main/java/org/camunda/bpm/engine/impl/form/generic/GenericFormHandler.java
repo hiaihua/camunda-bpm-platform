@@ -144,7 +144,7 @@ public class GenericFormHandler implements StartFormHandler {
             for (FormPropertyHandler formPropertyHandler : formPropertyHandlers) {
 
                 GenericFormField formField = formPropertyHandler.initializeAndMapGenericFormField(execution);
-                
+
                 formGroup.addFormFields(formField);
             }
             genericFormData.addFormGroup(formGroup);
@@ -152,8 +152,12 @@ public class GenericFormHandler implements StartFormHandler {
     }
 
     @Override
-    public void submitFormProperties(Map<String, String> properties, ExecutionEntity execution) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void submitFormProperties(Map<String, Object> properties, ExecutionEntity execution) {
+        for (GenericFormGroupHandler formGroup : formGroupHandlers) {
+            for (GenericFormFieldHandler formField : formGroup.getFormFieldHandlers()) {
+                formField.validate(properties, execution);
+            }
+        }
     }
 
     @Override
