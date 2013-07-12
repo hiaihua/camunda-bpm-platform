@@ -1,3 +1,4 @@
+
 /* Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -10,7 +11,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.camunda.bpm.engine.impl;
 
 import java.util.Map;
@@ -19,14 +19,15 @@ import org.camunda.bpm.engine.FormService;
 import org.camunda.bpm.engine.form.StartFormData;
 import org.camunda.bpm.engine.form.TaskFormData;
 import org.camunda.bpm.engine.impl.cmd.GetFormKeyCmd;
+import org.camunda.bpm.engine.impl.cmd.GetGenericFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetRenderedStartFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetRenderedTaskFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetStartFormCmd;
 import org.camunda.bpm.engine.impl.cmd.GetTaskFormCmd;
 import org.camunda.bpm.engine.impl.cmd.SubmitStartFormCmd;
 import org.camunda.bpm.engine.impl.cmd.SubmitTaskFormCmd;
+import org.camunda.bpm.engine.impl.form.generic.GenericForm;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
-
 
 /**
  * @author Tom Baeyens
@@ -34,48 +35,53 @@ import org.camunda.bpm.engine.runtime.ProcessInstance;
  */
 public class FormServiceImpl extends ServiceImpl implements FormService {
 
-  public Object getRenderedStartForm(String processDefinitionId) {
-    return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, null));
-  }
+    @Override
+    public GenericForm getGenericForm(String taskId) {
+        return commandExecutor.execute(new GetGenericFormCmd(taskId));
+    }
+    
+    public Object getRenderedStartForm(String processDefinitionId) {
+        return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, null));
+    }
 
-  public Object getRenderedStartForm(String processDefinitionId, String engineName) {
-    return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, engineName));
-  }
+    public Object getRenderedStartForm(String processDefinitionId, String engineName) {
+        return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, engineName));
+    }
 
-  public Object getRenderedTaskForm(String taskId) {
-    return commandExecutor.execute(new GetRenderedTaskFormCmd(taskId, null));
-  }
+    public Object getRenderedTaskForm(String taskId) {
+        return commandExecutor.execute(new GetRenderedTaskFormCmd(taskId, null));
+    }
 
-  public Object getRenderedTaskForm(String taskId, String engineName) {
-    return commandExecutor.execute(new GetRenderedTaskFormCmd(taskId, engineName));
-  }
+    public Object getRenderedTaskForm(String taskId, String engineName) {
+        return commandExecutor.execute(new GetRenderedTaskFormCmd(taskId, engineName));
+    }
 
-  public StartFormData getStartFormData(String processDefinitionId) {
-    return commandExecutor.execute(new GetStartFormCmd(processDefinitionId));
-  }
+    public StartFormData getStartFormData(String processDefinitionId) {
+        return commandExecutor.execute(new GetStartFormCmd(processDefinitionId));
+    }
 
-  public TaskFormData getTaskFormData(String taskId) {
-    return commandExecutor.execute(new GetTaskFormCmd(taskId));
-  }
+    public TaskFormData getTaskFormData(String taskId) {
+        return commandExecutor.execute(new GetTaskFormCmd(taskId));
+    }
 
-  public ProcessInstance submitStartFormData(String processDefinitionId, Map<String, String> properties) {
-    return commandExecutor.execute(new SubmitStartFormCmd(processDefinitionId, null, properties));
-  }
-  
-  public ProcessInstance submitStartFormData(String processDefinitionId, String businessKey, Map<String, String> properties) {
-	  return commandExecutor.execute(new SubmitStartFormCmd(processDefinitionId, businessKey, properties));
-  }
+    public ProcessInstance submitStartFormData(String processDefinitionId, Map<String, String> properties) {
+        return commandExecutor.execute(new SubmitStartFormCmd(processDefinitionId, null, properties));
+    }
 
-  public void submitTaskFormData(String taskId, Map<String, String> properties) {
-    commandExecutor.execute(new SubmitTaskFormCmd(taskId, properties));
-  }
+    public ProcessInstance submitStartFormData(String processDefinitionId, String businessKey, Map<String, String> properties) {
+        return commandExecutor.execute(new SubmitStartFormCmd(processDefinitionId, businessKey, properties));
+    }
 
-  public String getStartFormKey(String processDefinitionId) {
-    return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId));
-  }
+    public void submitTaskFormData(String taskId, Map<String, String> properties) {
+        commandExecutor.execute(new SubmitTaskFormCmd(taskId, properties));
+    }
 
-  public String getTaskFormKey(String processDefinitionId, String taskDefinitionKey) {
-    return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId, taskDefinitionKey));
-  }
+    public String getStartFormKey(String processDefinitionId) {
+        return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId));
+    }
 
+    public String getTaskFormKey(String processDefinitionId, String taskDefinitionKey) {
+        return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId, taskDefinitionKey));
+    }
+    
 }

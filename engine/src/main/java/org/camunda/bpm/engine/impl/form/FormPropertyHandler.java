@@ -19,6 +19,9 @@ import org.camunda.bpm.engine.ProcessEngineException;
 import org.camunda.bpm.engine.delegate.Expression;
 import org.camunda.bpm.engine.form.FormProperty;
 import org.camunda.bpm.engine.impl.el.StartProcessVariableScope;
+import org.camunda.bpm.engine.impl.form.generic.GenericFormField;
+import org.camunda.bpm.engine.impl.form.generic.GenericFormFieldValidation;
+import org.camunda.bpm.engine.impl.form.generic.GenericFormFieldValidationConstraint;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
 
 
@@ -184,4 +187,41 @@ public class FormPropertyHandler {
   public void setWritable(boolean isWritable) {
     this.isWritable = isWritable;
   }
+
+    public GenericFormField initializeAndMapGenericFormField(ExecutionEntity execution) {
+        GenericFormField genericFormField = new GenericFormField();
+        
+        /*
+  protected AbstractFormType type;
+  
+  protected String variableName;
+  protected Expression variableExpression;
+  protected Expression defaultExpression;*/
+  
+        genericFormField.setId(id);
+        genericFormField.setName(name);
+        genericFormField.setType("");
+        // variableName
+        
+        GenericFormFieldValidation validation = new GenericFormFieldValidation();
+        GenericFormFieldValidationConstraint readAbleConstraint = new GenericFormFieldValidationConstraint();
+        readAbleConstraint.setName("isRequired");
+        readAbleConstraint.setConfig(Boolean.toString(isReadable));
+        validation.addConstraint(readAbleConstraint);
+        
+        GenericFormFieldValidationConstraint writeAbleConstraint = new GenericFormFieldValidationConstraint();
+        writeAbleConstraint.setName("isWritable");
+        writeAbleConstraint.setConfig(Boolean.toString(isWritable));
+        validation.addConstraint(writeAbleConstraint);
+        
+        GenericFormFieldValidationConstraint requiredConstraint = new GenericFormFieldValidationConstraint();
+        requiredConstraint.setName("isRequired");
+        requiredConstraint.setConfig(Boolean.toString(isRequired));
+        validation.addConstraint(requiredConstraint);
+        
+        
+        genericFormField.setValidation(validation);
+        
+        return genericFormField;
+    }
 }

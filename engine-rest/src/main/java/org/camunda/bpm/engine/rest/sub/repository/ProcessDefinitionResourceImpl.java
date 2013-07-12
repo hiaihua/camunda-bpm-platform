@@ -145,8 +145,8 @@ public class ProcessDefinitionResourceImpl implements ProcessDefinitionResource 
     } catch (ProcessEngineException e) {
       throw new InvalidRequestException(Status.BAD_REQUEST, e, "Cannot get start form data for process definition " + processDefinitionId);
     }
-
-    return FormDto.fromFormData(formData);
+    //@todo
+    return FormDto.fromFormData(null);
   }
 
 }

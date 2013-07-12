@@ -17,6 +17,7 @@ import java.util.Map;
 
 import org.camunda.bpm.engine.form.StartFormData;
 import org.camunda.bpm.engine.form.TaskFormData;
+import org.camunda.bpm.engine.impl.form.generic.GenericForm;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.runtime.ProcessInstanceQuery;
 import org.camunda.bpm.engine.task.Task;
@@ -29,6 +30,8 @@ import org.camunda.bpm.engine.task.TaskQuery;
  * @author Falko Menge (camunda)
  */
 public interface FormService {
+    
+  GenericForm getGenericForm(String taskId);
 
   /** Retrieves all data necessary for rendering a form to start a new process instance. This can be used to perform rendering of the forms outside of the process engine. */
   StartFormData getStartFormData(String processDefinitionId);

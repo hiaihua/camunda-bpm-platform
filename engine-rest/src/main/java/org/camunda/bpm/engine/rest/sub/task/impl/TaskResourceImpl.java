@@ -19,6 +19,7 @@ import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.ProcessEngineException;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.form.FormData;
+import org.camunda.bpm.engine.impl.form.generic.GenericForm;
 import org.camunda.bpm.engine.rest.dto.task.CompleteTaskDto;
 import org.camunda.bpm.engine.rest.dto.task.FormDto;
 import org.camunda.bpm.engine.rest.dto.task.TaskDto;
@@ -76,14 +77,15 @@ public class TaskResourceImpl implements TaskResource {
   public FormDto getForm() {
     FormService formService = engine.getFormService();
 
-    FormData formData;
+    GenericForm genericForm;
     try {
-      formData = formService.getTaskFormData(taskId);
+      genericForm = formService.getGenericForm(taskId);
+      //formData = formService.getTaskFormData(taskId);
     } catch (ProcessEngineException e) {
       throw new RestException(Status.BAD_REQUEST, e, "Cannot get form for task " + taskId);
     }
     
-    return FormDto.fromFormData(formData);
+    return FormDto.fromFormData(genericForm);
   }
 
   @Override
