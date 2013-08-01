@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.camunda.bpm.engine.delegate.Expression;
-import org.camunda.bpm.engine.form.StartFormData;
+import org.camunda.bpm.engine.delegate.VariableScope;
 import org.camunda.bpm.engine.impl.bpmn.parser.BpmnParse;
 import org.camunda.bpm.engine.impl.bpmn.parser.BpmnParser;
 import org.camunda.bpm.engine.impl.context.Context;
@@ -12,7 +12,6 @@ import org.camunda.bpm.engine.impl.el.ExpressionManager;
 import org.camunda.bpm.engine.impl.form.AbstractFormType;
 import org.camunda.bpm.engine.impl.form.FormPropertyHandler;
 import org.camunda.bpm.engine.impl.form.FormTypes;
-import org.camunda.bpm.engine.impl.form.StartFormHandler;
 import org.camunda.bpm.engine.impl.persistence.entity.DeploymentEntity;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
 import org.camunda.bpm.engine.impl.persistence.entity.ProcessDefinitionEntity;
@@ -22,14 +21,13 @@ import org.camunda.bpm.engine.impl.util.xml.Element;
  *
  * @author Michael Siebers
  */
-public class GenericFormHandler implements StartFormHandler {
+public class GenericFormHandler {
 
     protected Expression formKey;
     protected String deploymentId;
     protected List<GenericFormGroupHandler> formGroupHandlers = new ArrayList<GenericFormGroupHandler>();
     protected List<FormPropertyHandler> formPropertyHandlers = new ArrayList<FormPropertyHandler>();
 
-    @Override
     public void parseConfiguration(Element activityElement, DeploymentEntity deployment, ProcessDefinitionEntity processDefinition, BpmnParse bpmnParse) {
         this.deploymentId = deployment.getId();
 
@@ -47,6 +45,7 @@ public class GenericFormHandler implements StartFormHandler {
         if (extensionElement != null) {
             List<Element> formPropertyElements = extensionElement.elementsNS(BpmnParser.ACTIVITI_BPMN_EXTENSIONS_NS, "formProperty");
             parseFormPropertyElements(formPropertyElements, bpmnParse, expressionManager);
+            mapFromFormPropertyElementsToFormGroup();
 
             List<Element> formGroupElements = extensionElement.elementsNS(BpmnParser.ACTIVITI_BPMN_EXTENSIONS_NS, "formGroup");
 
@@ -131,27 +130,6 @@ public class GenericFormHandler implements StartFormHandler {
         }
     }
 
-    protected void initializeFormGroups(GenericForm genericFormData, ExecutionEntity execution) {
-        for (GenericFormGroupHandler formGroupHandler : formGroupHandlers) {
-
-            GenericFormGroup formGroup = formGroupHandler.initializeGenericFormGroup(execution);
-
-            genericFormData.addFormGroup(formGroup);
-        }
-
-        if (formPropertyHandlers != null && !formPropertyHandlers.isEmpty()) {
-            GenericFormGroup formGroup = new GenericFormGroup();
-            for (FormPropertyHandler formPropertyHandler : formPropertyHandlers) {
-
-                GenericFormField formField = formPropertyHandler.initializeAndMapGenericFormField(execution);
-
-                formGroup.addFormFields(formField);
-            }
-            genericFormData.addFormGroup(formGroup);
-        }
-    }
-
-    @Override
     public void submitFormProperties(Map<String, Object> properties, ExecutionEntity execution) {
         for (GenericFormGroupHandler formGroup : formGroupHandlers) {
             for (GenericFormFieldHandler formField : formGroup.getFormFieldHandlers()) {
@@ -160,9 +138,13 @@ public class GenericFormHandler implements StartFormHandler {
         }
     }
 
-    @Override
-    public StartFormData createStartFormData(ProcessDefinitionEntity processDefinition) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    protected void initializeFormGroups(GenericForm genericFormData, ProcessDefinitionEntity processDefinition, VariableScope variableScope) {
+        for (GenericFormGroupHandler formGroupHandler : formGroupHandlers) {
+
+            GenericFormGroup formGroup = formGroupHandler.initializeGenericFormGroup(processDefinition, variableScope);
+
+            genericFormData.addFormGroup(formGroup);
+        }
     }
 
     private void parseFormPropertyElements(List<Element> formPropertyElements, BpmnParse bpmnParse, ExpressionManager expressionManager) {
@@ -226,5 +208,76 @@ public class GenericFormHandler implements StartFormHandler {
 
             formPropertyHandlers.add(formPropertyHandler);
         }
+    }
+
+    private void mapFromFormPropertyElementsToFormGroup() {
+        GenericFormGroupHandler group = new GenericFormGroupHandler();
+        group.setId("");
+        group.setName("");
+
+        ExpressionManager expressionManager = Context
+                .getProcessEngineConfiguration()
+                .getExpressionManager();
+
+        for (FormPropertyHandler property : formPropertyHandlers) {
+            GenericFormFieldHandler field = new GenericFormFieldHandler();
+
+            field.setId(property.getVariableName() != null ? property.getVariableName() : property.getId());
+            field.setName(property.getName());
+
+            GenericFormFieldConfigurationHandler fieldConfiguration = new GenericFormFieldConfigurationHandler();
+            field.setConfiguration(fieldConfiguration);
+
+            field.setType(property.getType().getName());
+
+            if (property.getType().getName().equals("enum")) {
+                field.setDefaultValue((Expression) property.getType().getInformation("values"));
+            }
+
+            // @todo check this
+            //field.setDefaultValue();
+
+            property.getDefaultExpression();
+            property.getVariableExpression();
+
+
+
+            // Validation
+            GenericFormFieldValidationHandler fieldValidation = new GenericFormFieldValidationHandler();
+
+
+            if (property.isReadable() == false) {
+                GenericFormFieldValidationConstraintHandler constraintReadable = new GenericFormFieldValidationConstraintHandler();
+
+                constraintReadable.setName("readable");
+                constraintReadable.setConfig(expressionManager.createExpression("true"));
+                fieldValidation.addConstraint(constraintReadable);
+            }
+
+            if (property.isRequired() == false) {
+                GenericFormFieldValidationConstraintHandler constraintRequired = new GenericFormFieldValidationConstraintHandler();
+
+                constraintRequired.setName("required");
+                constraintRequired.setConfig(expressionManager.createExpression("true"));
+                fieldValidation.addConstraint(constraintRequired);
+            }
+
+            if (property.isWritable() == false) {
+                GenericFormFieldValidationConstraintHandler constraintWritable = new GenericFormFieldValidationConstraintHandler();
+
+                constraintWritable.setName("writable");
+                constraintWritable.setConfig(expressionManager.createExpression("true"));
+                fieldValidation.addConstraint(constraintWritable);
+            }
+
+
+            field.setValidation(fieldValidation);
+
+
+
+            group.addFormField(field);
+        }
+
+        formGroupHandlers.add(group);
     }
 }

@@ -3,7 +3,9 @@ package org.camunda.bpm.engine.impl.form.generic;
 import java.util.Map;
 
 import org.camunda.bpm.engine.delegate.Expression;
+import org.camunda.bpm.engine.delegate.VariableScope;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
+import org.camunda.bpm.engine.impl.persistence.entity.ProcessDefinitionEntity;
 
 /**
  *
@@ -20,16 +22,16 @@ class GenericFormFieldHandler {
 
     public GenericFormFieldHandler() {
     }
-    
+
     public void validate(Map<String, Object> properties, final ExecutionEntity execution) {
         Object value = properties.get(id);
-        
+
         for(GenericFormFieldValidationConstraintHandler constraint : validation.getConstraints()) {
             constraint.validate(value, execution);
         }
     }
 
-    public <T> GenericFormField initializeGenericFormField(final ExecutionEntity execution) {
+    public <T> GenericFormField initializeGenericFormField(final ProcessDefinitionEntity processDefinition, final VariableScope variableScope) {
         GenericFormField genericFormField = new GenericFormField();
 
         genericFormField.setId(id);
@@ -37,11 +39,11 @@ class GenericFormFieldHandler {
         genericFormField.setType(type);
 
         if (defaultValue != null) {
-            genericFormField.setDefaultValue(ApplicationSwitchUtil.getValue(defaultValue, execution));
+            genericFormField.setDefaultValue(ApplicationSwitchUtil.getValue(defaultValue, processDefinition, variableScope));
         }
 
-        genericFormField.setValidation(validation.initializeGenericFormFieldValidation(execution));
-        genericFormField.setConfiguration(configuration.initializeGenericFormFieldConfiguration(execution));
+        genericFormField.setValidation(validation.initializeGenericFormFieldValidation(processDefinition, variableScope));
+        genericFormField.setConfiguration(configuration.initializeGenericFormFieldConfiguration(processDefinition, variableScope));
 
         return genericFormField;
     }

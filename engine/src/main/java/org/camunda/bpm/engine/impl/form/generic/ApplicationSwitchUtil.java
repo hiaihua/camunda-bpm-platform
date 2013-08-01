@@ -3,10 +3,11 @@ package org.camunda.bpm.engine.impl.form.generic;
 import java.util.concurrent.Callable;
 import org.camunda.bpm.application.ProcessApplicationReference;
 import org.camunda.bpm.engine.delegate.Expression;
+import org.camunda.bpm.engine.delegate.VariableScope;
 import org.camunda.bpm.engine.impl.application.ProcessApplicationManager;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.context.Context;
-import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
+import org.camunda.bpm.engine.impl.persistence.entity.ProcessDefinitionEntity;
 
 /**
  *
@@ -14,11 +15,11 @@ import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
  */
 public class ApplicationSwitchUtil {
 
-    public static Object getValue(final Expression defaultValue, final ExecutionEntity execution) {
+    public static Object getValue(final Expression defaultValue, final ProcessDefinitionEntity processDefinition, final VariableScope variableScope) {
         if (defaultValue == null) {
             return null;
         }
-        String deploymentId = execution.getProcessDefinition().getDeploymentId();
+        String deploymentId = processDefinition.getProcessDefinition().getDeploymentId();
 
         ProcessEngineConfigurationImpl processEngineConfiguration = Context.getProcessEngineConfiguration();
         ProcessApplicationManager processApplicationManager = processEngineConfiguration.getProcessApplicationManager();
@@ -30,13 +31,13 @@ public class ApplicationSwitchUtil {
         if (pa != null && !pa.getName().equals(Context.getCurrentProcessApplication())) {
             value = Context.executeWithinProcessApplication(new Callable<Object>() {
                 public Object call() throws Exception {
-                    return defaultValue.getValue(execution);
+                    return defaultValue.getValue(variableScope);
                 }
             }, pa);
         } else {
-            value = defaultValue.getValue(execution);
+            value = defaultValue.getValue(variableScope);
         }
-        
+
         return value;
     }
 }

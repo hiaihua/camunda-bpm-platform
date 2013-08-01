@@ -1,6 +1,7 @@
 package org.camunda.bpm.engine.impl.form.generic;
 
-import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
+import org.camunda.bpm.engine.delegate.VariableScope;
+import org.camunda.bpm.engine.impl.persistence.entity.ProcessDefinitionEntity;
 
 /**
  *
@@ -26,11 +27,12 @@ class GenericFormFieldConfigurationConfigHandler {
         this.config = config;
     }
 
-    public GenericFormFieldConfigurationConfig initializeGenericFormFieldConfigurationConfig(ExecutionEntity execution) {
+    public GenericFormFieldConfigurationConfig initializeGenericFormFieldConfigurationConfig(final ProcessDefinitionEntity processDefinition, final VariableScope variableScope) {
         GenericFormFieldConfigurationConfig configurationConfig = new GenericFormFieldConfigurationConfig();
+
         configurationConfig.setConfig(this.config);
         configurationConfig.setName(this.name);
+
         return configurationConfig;
-                
     }
 }

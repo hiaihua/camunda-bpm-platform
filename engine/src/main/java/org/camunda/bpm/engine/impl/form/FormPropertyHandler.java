@@ -1,9 +1,9 @@
 /* Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,11 +39,11 @@ public class FormPropertyHandler {
   protected String variableName;
   protected Expression variableExpression;
   protected Expression defaultExpression;
-  
+
   public FormProperty createFormProperty(ExecutionEntity execution) {
     FormPropertyImpl formProperty = new FormPropertyImpl(this);
     Object modelValue = null;
-    
+
     if (execution!=null) {
       if (variableName != null || variableExpression == null) {
         final String varName = variableName != null ? variableName : id;
@@ -71,7 +71,7 @@ public class FormPropertyHandler {
     } else if (modelValue != null) {
       formProperty.setValue(modelValue.toString());
     }
-    
+
     return formProperty;
   }
 
@@ -79,11 +79,11 @@ public class FormPropertyHandler {
     if (!isWritable && properties.containsKey(id)) {
       throw new ProcessEngineException("form property '"+id+"' is not writable");
     }
-    
+
     if (isRequired && !properties.containsKey(id) && defaultExpression == null) {
       throw new ProcessEngineException("form property '"+id+"' is required");
     }
-    
+
     Object modelValue = null;
     if (properties.containsKey(id)) {
       final Object propertyValue = properties.remove(id);
@@ -102,7 +102,7 @@ public class FormPropertyHandler {
         throw new ProcessEngineException("form property '"+id+"' is required");
       }
     }
-    
+
     if (modelValue != null) {
       if (variableName != null) {
         execution.setVariable(variableName, modelValue);
@@ -115,71 +115,71 @@ public class FormPropertyHandler {
   }
 
   // getters and setters //////////////////////////////////////////////////////
-  
+
   public String getId() {
     return id;
   }
-  
+
   public void setId(String id) {
     this.id = id;
   }
-  
+
   public String getName() {
     return name;
   }
-  
+
   public void setName(String name) {
     this.name = name;
   }
-  
+
   public AbstractFormType getType() {
     return type;
   }
-  
+
   public void setType(AbstractFormType type) {
     this.type = type;
   }
-  
+
   public boolean isReadable() {
     return isReadable;
   }
-  
+
   public void setReadable(boolean isReadable) {
     this.isReadable = isReadable;
   }
-  
+
   public boolean isRequired() {
     return isRequired;
   }
-  
+
   public void setRequired(boolean isRequired) {
     this.isRequired = isRequired;
   }
-  
+
   public String getVariableName() {
     return variableName;
   }
-  
+
   public void setVariableName(String variableName) {
     this.variableName = variableName;
   }
-  
+
   public Expression getVariableExpression() {
     return variableExpression;
   }
-  
+
   public void setVariableExpression(Expression variableExpression) {
     this.variableExpression = variableExpression;
   }
-  
+
   public Expression getDefaultExpression() {
     return defaultExpression;
   }
-  
+
   public void setDefaultExpression(Expression defaultExpression) {
     this.defaultExpression = defaultExpression;
   }
-  
+
   public boolean isWritable() {
     return isWritable;
   }
@@ -187,41 +187,4 @@ public class FormPropertyHandler {
   public void setWritable(boolean isWritable) {
     this.isWritable = isWritable;
   }
-
-    public GenericFormField initializeAndMapGenericFormField(ExecutionEntity execution) {
-        GenericFormField genericFormField = new GenericFormField();
-        
-        /*
-  protected AbstractFormType type;
-  
-  protected String variableName;
-  protected Expression variableExpression;
-  protected Expression defaultExpression;*/
-  
-        genericFormField.setId(id);
-        genericFormField.setName(name);
-        genericFormField.setType("");
-        // variableName
-        
-        GenericFormFieldValidation validation = new GenericFormFieldValidation();
-        GenericFormFieldValidationConstraint readAbleConstraint = new GenericFormFieldValidationConstraint();
-        readAbleConstraint.setName("isRequired");
-        readAbleConstraint.setConfig(Boolean.toString(isReadable));
-        validation.addConstraint(readAbleConstraint);
-        
-        GenericFormFieldValidationConstraint writeAbleConstraint = new GenericFormFieldValidationConstraint();
-        writeAbleConstraint.setName("isWritable");
-        writeAbleConstraint.setConfig(Boolean.toString(isWritable));
-        validation.addConstraint(writeAbleConstraint);
-        
-        GenericFormFieldValidationConstraint requiredConstraint = new GenericFormFieldValidationConstraint();
-        requiredConstraint.setName("isRequired");
-        requiredConstraint.setConfig(Boolean.toString(isRequired));
-        validation.addConstraint(requiredConstraint);
-        
-        
-        genericFormField.setValidation(validation);
-        
-        return genericFormField;
-    }
 }

@@ -2,6 +2,8 @@ package org.camunda.bpm.engine.impl.form.generic;
 
 import org.camunda.bpm.engine.form.TaskFormData;
 import org.camunda.bpm.engine.impl.form.TaskFormHandler;
+import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
+import org.camunda.bpm.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.camunda.bpm.engine.impl.persistence.entity.TaskEntity;
 
 /**
@@ -10,17 +12,15 @@ import org.camunda.bpm.engine.impl.persistence.entity.TaskEntity;
  */
 public class GenericTaskFormHandler extends GenericFormHandler implements TaskFormHandler {
 
-    public GenericTaskFormHandler() {
-    }
-
     @Override
     public TaskFormData createTaskForm(TaskEntity task) {
         GenericTaskForm genericTaskForm = new GenericTaskForm(task);
         genericTaskForm.setDeploymentId(this.deploymentId);
-        
-        
-        initializeFormGroups(genericTaskForm, task.getExecution());
-        
+
+        ExecutionEntity execution = task.getExecution();
+
+        initializeFormGroups(genericTaskForm, (ProcessDefinitionEntity) execution.getProcessDefinition(), execution);
+
 
         if (formKey != null) {
             Object parsedformKey = formKey.getValue(task.getExecution());
