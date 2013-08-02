@@ -12,12 +12,17 @@
  */
 package org.camunda.bpm.engine.impl;
 
+import java.util.List;
+
 import org.camunda.bpm.engine.AuthorizationService;
-import org.camunda.bpm.engine.identity.Authorization;
-import org.camunda.bpm.engine.identity.AuthorizationQuery;
+import org.camunda.bpm.engine.authorization.Authorization;
+import org.camunda.bpm.engine.authorization.AuthorizationQuery;
+import org.camunda.bpm.engine.authorization.Permission;
+import org.camunda.bpm.engine.authorization.Resource;
+import org.camunda.bpm.engine.impl.cmd.AuthorizationCheckCmd;
+import org.camunda.bpm.engine.impl.cmd.CreateAuthorizationCommand;
 import org.camunda.bpm.engine.impl.cmd.DeleteAuthorizationCmd;
 import org.camunda.bpm.engine.impl.cmd.SaveAuthorizationCmd;
-import org.camunda.bpm.engine.impl.persistence.entity.AuthorizationEntity;
 
 /**
  * @author Daniel Meyer
@@ -29,8 +34,8 @@ public class AuthorizationServiceImpl extends ServiceImpl implements Authorizati
     return new AuthorizationQueryImpl(commandExecutor);
   }
   
-  public Authorization createNewAuthorization() {
-    return new AuthorizationEntity();
+  public Authorization createNewAuthorization(int type) {
+    return commandExecutor.execute(new CreateAuthorizationCommand(type));
   }
   
   public Authorization saveAuthorization(Authorization authorization) {
@@ -39,6 +44,14 @@ public class AuthorizationServiceImpl extends ServiceImpl implements Authorizati
   
   public void deleteAuthorization(String authorizationId) {
     commandExecutor.execute(new DeleteAuthorizationCmd(authorizationId));    
+  }
+
+  public boolean isUserAuthorized(String userId, List<String> groupIds, Permission permission, Resource resource) {
+    return commandExecutor.execute(new AuthorizationCheckCmd(userId, groupIds, permission, resource, null));
+  }
+
+  public boolean isUserAuthorized(String userId, List<String> groupIds, Permission permission, Resource resource, String resourceId) {
+    return commandExecutor.execute(new AuthorizationCheckCmd(userId, groupIds, permission, resource, resourceId));
   }
   
 }

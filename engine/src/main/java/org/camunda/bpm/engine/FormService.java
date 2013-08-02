@@ -1,9 +1,9 @@
 /* Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,7 @@ import java.util.Map;
 import org.camunda.bpm.engine.form.StartFormData;
 import org.camunda.bpm.engine.form.TaskFormData;
 import org.camunda.bpm.engine.impl.form.generic.GenericForm;
+import org.camunda.bpm.engine.impl.form.generic.GenericStartFormData;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.camunda.bpm.engine.runtime.ProcessInstanceQuery;
 import org.camunda.bpm.engine.task.Task;
@@ -33,6 +34,8 @@ public interface FormService {
 
     GenericForm getGenericForm(String taskId);
 
+
+    GenericForm getGenericStartFormData(String processDefinitionId);
     /**
      * Retrieves all data necessary for rendering a form to start a new process
      * instance. This can be used to perform rendering of the forms outside of

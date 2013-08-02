@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.camunda.bpm.engine.impl.form.generic.GenericForm;
 import org.camunda.bpm.engine.impl.form.generic.GenericFormField;
-import org.camunda.bpm.engine.impl.form.generic.GenericFormFieldConfiguration;
 import org.camunda.bpm.engine.impl.form.generic.GenericFormFieldConfigurationConfig;
 import org.camunda.bpm.engine.impl.form.generic.GenericFormFieldValidationConstraint;
 import org.camunda.bpm.engine.impl.form.generic.GenericFormGroup;
@@ -18,6 +17,7 @@ public class FormDto {
     protected String key;
     protected String deploymentId;
     protected List<GenericFormGroupDto> formGroups = new ArrayList<GenericFormGroupDto>();
+    private String contextPath;
 
     public void setKey(String form) {
         this.key = form;
@@ -25,6 +25,14 @@ public class FormDto {
 
     public String getKey() {
         return key;
+    }
+
+    public void setContextPath(String contextPath) {
+        this.contextPath = contextPath;
+    }
+
+    public String getContextPath() {
+        return contextPath;
     }
 
     public static FormDto fromFormData(GenericForm genericForm) {
@@ -65,16 +73,16 @@ public class FormDto {
                     genericFormFieldDto.setConfiguration(configurationDto);
 
                     GenericFormFieldValidationDto validationDto = new GenericFormFieldValidationDto();
-                    
+
                     for (GenericFormFieldValidationConstraint constraint : genericFormField.getValidation().getConstraints()) {
                         GenericFormFieldValidationConstraintDto constraintDto = new GenericFormFieldValidationConstraintDto();
-                        
+
                         constraintDto.setConfig(constraint.getConfig());
                         constraintDto.setName(constraint.getName());
-                        
+
                         validationDto.addConstraint(constraintDto);
                     }
-                    
+
                     genericFormFieldDto.setValidation(validationDto);
                     genericFormGroupDto.addFormFields(genericFormFieldDto);
                 }

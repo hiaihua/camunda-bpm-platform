@@ -12,8 +12,28 @@
  */
 package org.camunda.bpm.engine.test.api.identity;
 
+import static org.camunda.bpm.engine.authorization.Authorization.ANY;
+import static org.camunda.bpm.engine.authorization.Authorization.AUTH_TYPE_GLOBAL;
+import static org.camunda.bpm.engine.authorization.Authorization.AUTH_TYPE_GRANT;
+import static org.camunda.bpm.engine.authorization.Authorization.AUTH_TYPE_REVOKE;
+import static org.camunda.bpm.engine.authorization.Permissions.ACCESS;
+import static org.camunda.bpm.engine.authorization.Permissions.ALL;
+import static org.camunda.bpm.engine.authorization.Permissions.NONE;
+import static org.camunda.bpm.engine.authorization.Permissions.CREATE;
+import static org.camunda.bpm.engine.authorization.Permissions.DELETE;
+import static org.camunda.bpm.engine.authorization.Permissions.READ;
+import static org.camunda.bpm.engine.authorization.Permissions.UPDATE;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.camunda.bpm.engine.ProcessEngineException;
-import org.camunda.bpm.engine.identity.Authorization;
+import org.camunda.bpm.engine.authorization.Authorization;
+import org.camunda.bpm.engine.authorization.Permission;
+import org.camunda.bpm.engine.authorization.Permissions;
+import org.camunda.bpm.engine.identity.User;
+import org.camunda.bpm.engine.impl.persistence.entity.AuthorizationEntity;
 import org.camunda.bpm.engine.impl.test.PluggableProcessEngineTestCase;
 
 /**
@@ -22,15 +42,92 @@ import org.camunda.bpm.engine.impl.test.PluggableProcessEngineTestCase;
  */
 public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
   
+  @Override
+  protected void tearDown() throws Exception {
+    cleanupAfterTest();
+    super.tearDown();
+  }
+  
+  public void testGlobalAuthorizationType() {
+    Authorization globalAuthorization = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    // I can set userId = null
+    globalAuthorization.setUserId(null);
+    // I can set userId = ANY
+    globalAuthorization.setUserId(ANY);
+    
+    try {
+      // I cannot set anything else:
+      globalAuthorization.setUserId("something");
+      fail("exception expected");
+      
+    } catch (Exception e) {
+      assertTextPresent("Illegal value something for userId for GLOBAL authorization. must be '*'", e.getMessage());
+      
+    }
+    
+    // I can set groupId = null
+    globalAuthorization.setGroupId(null);
+    
+    try {
+      // I cannot set anything else:
+      globalAuthorization.setGroupId("something");
+      fail("exception expected");
+      
+    } catch (Exception e) {
+      assertTextPresent("Cannot use groupId for GLOBAL authorization", e.getMessage());      
+    }        
+  }
+  
+  public void testGrantAuthorizationType() {
+    Authorization grantAuthorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
+    // I can set userId = null
+    grantAuthorization.setUserId(null);
+    // I can set userId = ANY
+    grantAuthorization.setUserId(ANY);    
+    // I can set anything else:
+    grantAuthorization.setUserId("something");        
+    // I can set groupId = null
+    grantAuthorization.setGroupId(null);    
+    // I can set anything else:
+    grantAuthorization.setGroupId("something");     
+  }
+  
+  public void testRevokeAuthorizationType() {
+    Authorization revokeAuthorization = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    // I can set userId = null
+    revokeAuthorization.setUserId(null);
+    // I can set userId = ANY
+    revokeAuthorization.setUserId(ANY);    
+    // I can set anything else:
+    revokeAuthorization.setUserId("something");        
+    // I can set groupId = null
+    revokeAuthorization.setGroupId(null);    
+    // I can set anything else:
+    revokeAuthorization.setGroupId("something");     
+  }
+  
+  public void testDeleteNonExistingAuthorization() {
+    
+    try {
+      authorizationService.deleteAuthorization("nonExisiting");
+      fail();
+    } catch (Exception e) {
+      assertTextPresent("Authorization for Id 'nonExisiting' does not exist.", e.getMessage());
+    }
+        
+  }
+  
   public void testCreateAuthorizationWithUserId() {
+    
+    TestResource resource1 = new TestResource("resource1",100);
     
     // initially, no authorization exists:
     assertEquals(0, authorizationService.createAuthorizationQuery().count());
     
     // simple create / delete with userId    
-    Authorization authorization = authorizationService.createNewAuthorization();
+    Authorization authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
     authorization.setUserId("aUserId");
-    authorization.setResourceType("processDefinition");
+    authorization.setResource(resource1);
     
     // save the authorization
     authorizationService.saveAuthorization(authorization);
@@ -45,13 +142,15 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
   
   public void testCreateAuthorizationWithGroupId() {
     
+    TestResource resource1 = new TestResource("resource1",100);
+    
     // initially, no authorization exists:
     assertEquals(0, authorizationService.createAuthorizationQuery().count());
     
     // simple create / delete with userId    
-    Authorization authorization = authorizationService.createNewAuthorization();
+    Authorization authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
     authorization.setGroupId("aGroupId");
-    authorization.setResourceType("processDefinition");
+    authorization.setResource(resource1);
     
     // save the authorization
     authorizationService.saveAuthorization(authorization);
@@ -65,11 +164,13 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
   }
   
   public void testInvalidCreateAuthorization() {
+    
+    TestResource resource1 = new TestResource("resource1",100);
         
     // case 1: no user id & no group id ////////////
     
-    Authorization authorization = authorizationService.createNewAuthorization();    
-    authorization.setResourceType("processDefinition");
+    Authorization authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);    
+    authorization.setResource(resource1);
     
     try {
       authorizationService.saveAuthorization(authorization);
@@ -80,10 +181,10 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
 
     // case 2: both user id & group id ////////////
     
-    authorization = authorizationService.createNewAuthorization();
+    authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
     authorization.setGroupId("someId");
     authorization.setUserId("someOtherId");
-    authorization.setResourceType("processDefinition");
+    authorization.setResource(resource1);
     
     try {
       authorizationService.saveAuthorization(authorization);
@@ -94,7 +195,7 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
     
     // case 3: no resourceType ////////////
     
-    authorization = authorizationService.createNewAuthorization();
+    authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
     authorization.setUserId("someId");
     
     try {
@@ -106,7 +207,7 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
     
     // case 4: no permissions /////////////////
     
-    authorization = authorizationService.createNewAuthorization();
+    authorization = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
     authorization.setUserId("someId");
     
     try {
@@ -119,14 +220,16 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
   
   public void testUniqueUserConstraints() {
     
-    Authorization authorization1 = authorizationService.createNewAuthorization();
-    Authorization authorization2 = authorizationService.createNewAuthorization();
+    TestResource resource1 = new TestResource("resource1",100);
     
-    authorization1.setResourceType("someType");
+    Authorization authorization1 = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
+    Authorization authorization2 = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
+    
+    authorization1.setResource(resource1);
     authorization1.setResourceId("someId");
     authorization1.setUserId("someUser");
     
-    authorization2.setResourceType("someType");
+    authorization2.setResource(resource1);
     authorization2.setResourceId("someId");
     authorization2.setUserId("someUser");
     
@@ -137,23 +240,48 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
     try {
       authorizationService.saveAuthorization(authorization2);
       fail("exception expected"); 
-    } catch(Exception e) {
+    } catch(ProcessEngineException e) {
       //expected
     }
     
-    authorizationService.deleteAuthorization(authorization1.getId());
+    // but I can add a AUTH_TYPE_REVOKE auth
+    
+    Authorization authorization3 = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    
+    authorization3.setResource(resource1);
+    authorization3.setResourceId("someId");
+    authorization3.setUserId("someUser");
+        
+    authorizationService.saveAuthorization(authorization3);
+    
+    // but not a second
+    
+    Authorization authorization4 = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    
+    authorization4.setResource(resource1);
+    authorization4.setResourceId("someId");
+    authorization4.setUserId("someUser");
+        
+    try {
+      authorizationService.saveAuthorization(authorization4);
+      fail("exception expected"); 
+    } catch(Exception e) {
+      //expected
+    }
   }
   
   public void testUniqueGroupConstraints() {
     
-    Authorization authorization1 = authorizationService.createNewAuthorization();
-    Authorization authorization2 = authorizationService.createNewAuthorization();
+    TestResource resource1 = new TestResource("resource1",100);
     
-    authorization1.setResourceType("someType");
+    Authorization authorization1 = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
+    Authorization authorization2 = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
+    
+    authorization1.setResource(resource1);
     authorization1.setResourceId("someId");
     authorization1.setGroupId("someGroup");
     
-    authorization2.setResourceType("someType");
+    authorization2.setResource(resource1);
     authorization2.setResourceId("someId");
     authorization2.setGroupId("someGroup");
     
@@ -168,16 +296,68 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
       //expected
     }
     
-    authorizationService.deleteAuthorization(authorization1.getId());
+    // but I can add a AUTH_TYPE_REVOKE auth
+    
+    Authorization authorization3 = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    
+    authorization3.setResource(resource1);
+    authorization3.setResourceId("someId");
+    authorization3.setGroupId("someGroup");
+        
+    authorizationService.saveAuthorization(authorization3);
+    
+    // but not a second
+    
+    Authorization authorization4 = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    
+    authorization4.setResource(resource1);
+    authorization4.setResourceId("someId");
+    authorization4.setGroupId("someGroup");
+        
+    try {
+      authorizationService.saveAuthorization(authorization4);
+      fail("exception expected"); 
+    } catch(Exception e) {
+      //expected
+    }
+    
+  }
+  
+  public void testGlobalUniqueConstraints() {
+    
+    TestResource resource1 = new TestResource("resource1",100);
+    
+    Authorization authorization1 = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    Authorization authorization2 = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    
+    authorization1.setResource(resource1);
+    authorization1.setResourceId("someId");
+    
+    authorization2.setResource(resource1);
+    authorization2.setResourceId("someId");
+    
+    // the first one can be saved
+    authorizationService.saveAuthorization(authorization1);
+    
+    // the second one cannot
+    try {
+      authorizationService.saveAuthorization(authorization2);
+      fail("exception expected"); 
+    } catch(Exception e) {
+      //expected
+    }
   }
   
   public void testUpdateNewAuthorization() {
+    
+    TestResource resource1 = new TestResource("resource1",100);
+    TestResource resource2 = new TestResource("resource1",101);
         
-    Authorization authorization = authorizationService.createNewAuthorization();
+    Authorization authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
     authorization.setUserId("aUserId");
-    authorization.setResourceType("aResourceType");
+    authorization.setResource(resource1);
     authorization.setResourceId("aResourceId");
-    authorization.addPermission(Authorization.PERMISSION_TYPE_ACCESS);
+    authorization.addPermission(ACCESS);
     
     // save the authorization
     authorizationService.saveAuthorization(authorization);
@@ -185,36 +365,37 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
     // validate authorization
     Authorization savedAuthorization = authorizationService.createAuthorizationQuery().singleResult();
     assertEquals("aUserId", savedAuthorization.getUserId());
-    assertEquals("aResourceType", savedAuthorization.getResourceType());
+    assertEquals(resource1.resourceType(), savedAuthorization.getResourceType());
     assertEquals("aResourceId", savedAuthorization.getResourceId());
-    assertTrue(savedAuthorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
+    assertTrue(savedAuthorization.isPermissionGranted(ACCESS));
     
     // update authorization
     authorization.setUserId("anotherUserId");
-    authorization.setResourceType("anotherResourceType");
+    authorization.setResource(resource2);
     authorization.setResourceId("anotherResourceId");
-    authorization.addPermission(Authorization.PERMISSION_TYPE_DELETE);    
+    authorization.addPermission(DELETE);    
     authorizationService.saveAuthorization(authorization);
     
     // validate authorization updated
     savedAuthorization = authorizationService.createAuthorizationQuery().singleResult();
     assertEquals("anotherUserId", savedAuthorization.getUserId());
-    assertEquals("anotherResourceType", savedAuthorization.getResourceType());
+    assertEquals(resource2.resourceType(), savedAuthorization.getResourceType());
     assertEquals("anotherResourceId", savedAuthorization.getResourceId());
-    assertTrue(savedAuthorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertTrue(savedAuthorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
+    assertTrue(savedAuthorization.isPermissionGranted(ACCESS));
+    assertTrue(savedAuthorization.isPermissionGranted(DELETE));
         
-    // delete the authorization
-    authorizationService.deleteAuthorization(authorization.getId());
   }
   
   public void testUpdatePersistentAuthorization() {
     
-    Authorization authorization = authorizationService.createNewAuthorization();
+    TestResource resource1 = new TestResource("resource1",100);
+    TestResource resource2 = new TestResource("resource1",101);
+    
+    Authorization authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
     authorization.setUserId("aUserId");
-    authorization.setResourceType("aResourceType");
+    authorization.setResource(resource1);
     authorization.setResourceId("aResourceId");
-    authorization.addPermission(Authorization.PERMISSION_TYPE_ACCESS);
+    authorization.addPermission(ACCESS);
     
     // save the authorization
     authorizationService.saveAuthorization(authorization);
@@ -222,89 +403,365 @@ public class AuthorizationServiceTest extends PluggableProcessEngineTestCase {
     // validate authorization
     Authorization savedAuthorization = authorizationService.createAuthorizationQuery().singleResult();
     assertEquals("aUserId", savedAuthorization.getUserId());
-    assertEquals("aResourceType", savedAuthorization.getResourceType());
+    assertEquals(resource1.resourceType(), savedAuthorization.getResourceType());
     assertEquals("aResourceId", savedAuthorization.getResourceId());
-    assertTrue(savedAuthorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
+    assertTrue(savedAuthorization.isPermissionGranted(ACCESS));
     
     // update authorization
     savedAuthorization.setUserId("anotherUserId");
-    savedAuthorization.setResourceType("anotherResourceType");
+    savedAuthorization.setResource(resource2);
     savedAuthorization.setResourceId("anotherResourceId");
-    savedAuthorization.addPermission(Authorization.PERMISSION_TYPE_DELETE);    
+    savedAuthorization.addPermission(DELETE);    
     authorizationService.saveAuthorization(savedAuthorization);
     
     // validate authorization updated
     savedAuthorization = authorizationService.createAuthorizationQuery().singleResult();
     assertEquals("anotherUserId", savedAuthorization.getUserId());
-    assertEquals("anotherResourceType", savedAuthorization.getResourceType());
+    assertEquals(resource2.resourceType(), savedAuthorization.getResourceType());
     assertEquals("anotherResourceId", savedAuthorization.getResourceId());
-    assertTrue(savedAuthorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertTrue(savedAuthorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
+    assertTrue(savedAuthorization.isPermissionGranted(ACCESS));
+    assertTrue(savedAuthorization.isPermissionGranted(DELETE));
         
-    // delete the authorization
-    authorizationService.deleteAuthorization(authorization.getId());
-    
   }
     
   public void testPermissions() {
     
-    Authorization authorization = authorizationService.createNewAuthorization();
+    Authorization authorization = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
 
-    assertEquals(0, authorization.getPermissions());    
+    assertEquals(1, authorization.getPermissions(Permissions.values()).length);    
     
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    assertFalse(authorization.isPermissionGranted(ACCESS));
+    assertFalse(authorization.isPermissionGranted(DELETE));
+    assertFalse(authorization.isPermissionGranted(READ));
+    assertFalse(authorization.isPermissionGranted(UPDATE));
     
-    authorization.addPermission(Authorization.PERMISSION_TYPE_ACCESS);
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.addPermission(ACCESS);
+    assertTrue(authorization.isPermissionGranted(ACCESS));
+    assertFalse(authorization.isPermissionGranted(DELETE));
+    assertFalse(authorization.isPermissionGranted(READ));
+    assertFalse(authorization.isPermissionGranted(UPDATE));
     
-    authorization.addPermission(Authorization.PERMISSION_TYPE_DELETE);
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.addPermission(DELETE);
+    assertTrue(authorization.isPermissionGranted(ACCESS));
+    assertTrue(authorization.isPermissionGranted(DELETE));
+    assertFalse(authorization.isPermissionGranted(READ));
+    assertFalse(authorization.isPermissionGranted(UPDATE));
    
-    authorization.addPermission(Authorization.PERMISSION_TYPE_READ);
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.addPermission(READ);
+    assertTrue(authorization.isPermissionGranted(ACCESS));
+    assertTrue(authorization.isPermissionGranted(DELETE));
+    assertTrue(authorization.isPermissionGranted(READ));
+    assertFalse(authorization.isPermissionGranted(UPDATE));
     
-    authorization.addPermission(Authorization.PERMISSION_TYPE_WRITE);
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.addPermission(UPDATE);
+    assertTrue(authorization.isPermissionGranted(ACCESS));
+    assertTrue(authorization.isPermissionGranted(DELETE));
+    assertTrue(authorization.isPermissionGranted(READ));
+    assertTrue(authorization.isPermissionGranted(UPDATE));
     
-    authorization.removePermission(Authorization.PERMISSION_TYPE_ACCESS);
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.removePermission(ACCESS);
+    assertFalse(authorization.isPermissionGranted(ACCESS));
+    assertTrue(authorization.isPermissionGranted(DELETE));
+    assertTrue(authorization.isPermissionGranted(READ));
+    assertTrue(authorization.isPermissionGranted(UPDATE));
     
-    authorization.removePermission(Authorization.PERMISSION_TYPE_DELETE);
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.removePermission(DELETE);
+    assertFalse(authorization.isPermissionGranted(ACCESS));
+    assertFalse(authorization.isPermissionGranted(DELETE));
+    assertTrue(authorization.isPermissionGranted(READ));
+    assertTrue(authorization.isPermissionGranted(UPDATE));
     
-    authorization.removePermission(Authorization.PERMISSION_TYPE_READ);
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertTrue(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.removePermission(READ);
+    assertFalse(authorization.isPermissionGranted(ACCESS));
+    assertFalse(authorization.isPermissionGranted(DELETE));
+    assertFalse(authorization.isPermissionGranted(READ));
+    assertTrue(authorization.isPermissionGranted(UPDATE));
     
-    authorization.removePermission(Authorization.PERMISSION_TYPE_WRITE);
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_ACCESS));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_DELETE));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_READ));
-    assertFalse(authorization.hasPermission(Authorization.PERMISSION_TYPE_WRITE));
+    authorization.removePermission(UPDATE);
+    assertFalse(authorization.isPermissionGranted(ACCESS));
+    assertFalse(authorization.isPermissionGranted(DELETE));
+    assertFalse(authorization.isPermissionGranted(READ));
+    assertFalse(authorization.isPermissionGranted(UPDATE));
     
+  }
+  
+  public void testGrantAuthPermissions() {
+    
+    AuthorizationEntity authorization = new AuthorizationEntity(AUTH_TYPE_GRANT);
+    assertFalse(authorization.isPermissionGranted(ALL));
+    assertTrue(authorization.isPermissionGranted(NONE));    
+    List<Permission> perms = Arrays.asList(authorization.getPermissions(Permissions.values()));
+    assertTrue(perms.contains(NONE));
+    assertEquals(1, perms.size());
+    
+    authorization.addPermission(READ);    
+    perms = Arrays.asList(authorization.getPermissions(Permissions.values()));
+    assertTrue(perms.contains(NONE));
+    assertTrue(perms.contains(READ));
+    assertEquals(2, perms.size());    
+    assertTrue(authorization.isPermissionGranted(READ));
+    assertTrue(authorization.isPermissionGranted(NONE)); // (none is always granted => you are always authorized to do nothing)
+    
+    try {
+      authorization.isPermissionRevoked(READ);
+      fail("Exception expected");
+    } catch (IllegalStateException e) {
+      assertTextPresent("Method isPermissionRevoked cannot be used for authorization type GRANT.", e.getMessage());
+    }
+      
+  }
+  
+  public void testGlobalAuthPermissions() {
+    
+    AuthorizationEntity authorization = new AuthorizationEntity(AUTH_TYPE_GRANT);
+    assertFalse(authorization.isPermissionGranted(ALL));
+    assertTrue(authorization.isPermissionGranted(NONE));    
+    List<Permission> perms = Arrays.asList(authorization.getPermissions(Permissions.values()));
+    assertTrue(perms.contains(NONE));
+    assertEquals(1, perms.size());
+    
+    authorization.addPermission(READ);    
+    perms = Arrays.asList(authorization.getPermissions(Permissions.values()));
+    assertTrue(perms.contains(NONE));
+    assertTrue(perms.contains(READ));
+    assertEquals(2, perms.size());    
+    assertTrue(authorization.isPermissionGranted(READ));
+    assertTrue(authorization.isPermissionGranted(NONE)); // (none is always granted => you are always authorized to do nothing)
+    
+    try {
+      authorization.isPermissionRevoked(READ);
+      fail("Exception expected");
+    } catch (IllegalStateException e) {
+      assertTextPresent("Method isPermissionRevoked cannot be used for authorization type GRANT.", e.getMessage());
+    }
+      
+  }
+  
+  public void testRevokeAuthPermissions() {
+    
+    AuthorizationEntity authorization = new AuthorizationEntity(AUTH_TYPE_REVOKE);
+    assertFalse(authorization.isPermissionRevoked(ALL));    
+    List<Permission> perms = Arrays.asList(authorization.getPermissions(Permissions.values()));
+    assertEquals(0, perms.size());
+    
+    authorization.removePermission(READ);    
+    perms = Arrays.asList(authorization.getPermissions(Permissions.values()));
+    assertTrue(perms.contains(READ));
+    assertTrue(perms.contains(ALL));
+    assertEquals(2, perms.size());    
+       
+    try {
+      authorization.isPermissionGranted(READ);
+      fail("Exception expected");
+    } catch (IllegalStateException e) {
+      assertTextPresent("Method isPermissionGranted cannot be used for authorization type REVOKE.", e.getMessage());
+    }
+      
+  }
+  
+  public void testAuthorizationCheckEmptyDb() {
+    TestResource resource1 = new TestResource("resource1",100);
+    TestResource resource2 = new TestResource("resource2",101);
+    
+    List<String> jonnysGroups = Arrays.asList(new String[]{"sales", "marketing"});
+    List<String> someOneElsesGroups = Arrays.asList(new String[]{"marketing"});
+    
+    // if no authorizations are in Db, nothing is authorized
+    assertFalse(authorizationService.isUserAuthorized("jonny", jonnysGroups, ALL, resource1));
+    assertFalse(authorizationService.isUserAuthorized("someone", someOneElsesGroups, CREATE, resource2));
+    assertFalse(authorizationService.isUserAuthorized("someone else", null, DELETE, resource1));
+    assertFalse(authorizationService.isUserAuthorized("jonny", jonnysGroups, ALL, resource1, "someId"));
+    assertFalse(authorizationService.isUserAuthorized("someone", someOneElsesGroups, CREATE, resource2, "someId"));
+    assertFalse(authorizationService.isUserAuthorized("someone else", null, DELETE, resource1, "someOtherId"));
+    
+  }
+  
+  public void testGlobalGrantAuthorizationCheck() {
+    TestResource resource1 = new TestResource("resource1",100);
+
+    // create global authorization which grants all permissions to all users (on resource1):
+    Authorization globalAuth = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    globalAuth.setResource(resource1);
+    globalAuth.setResourceId(ANY);
+    globalAuth.addPermission(ALL);    
+    authorizationService.saveAuthorization(globalAuth);
+    
+    List<String> jonnysGroups = Arrays.asList(new String[]{"sales", "marketing"});
+    List<String> someOneElsesGroups = Arrays.asList(new String[]{"marketing"});
+    
+    // this authorizes any user to do anything in this resource:
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, ALL, resource1));
+    assertTrue(authorizationService.isUserAuthorized("jonny", jonnysGroups, ALL, resource1));    
+    assertTrue(authorizationService.isUserAuthorized("someone", null, CREATE, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone", someOneElsesGroups, CREATE, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone else", null, DELETE, resource1));
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, ALL, resource1, "someId"));
+    assertTrue(authorizationService.isUserAuthorized("jonny", jonnysGroups, ALL, resource1, "someId"));
+    assertTrue(authorizationService.isUserAuthorized("someone", null, CREATE, resource1, "someId"));
+    assertTrue(authorizationService.isUserAuthorized("someone else", null, DELETE, resource1, "someOtherId"));
+  }
+  
+  public void testUserOverrideGlobalGrantAuthorizationCheck() {
+    TestResource resource1 = new TestResource("resource1",100);
+
+    // create global authorization which grants all permissions to all users  (on resource1):
+    Authorization globalGrant = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    globalGrant.setResource(resource1);
+    globalGrant.setResourceId(ANY);
+    globalGrant.addPermission(ALL);    
+    authorizationService.saveAuthorization(globalGrant);
+    
+    // revoke READ for jonny
+    Authorization localRevoke = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    localRevoke.setUserId("jonny");
+    localRevoke.setResource(resource1);
+    localRevoke.setResourceId(ANY);
+    localRevoke.removePermission(READ);
+    authorizationService.saveAuthorization(localRevoke);
+    
+    List<String> jonnysGroups = Arrays.asList(new String[]{"sales", "marketing"});
+    List<String> someOneElsesGroups = Arrays.asList(new String[]{"marketing"});
+    
+    // jonny does not have ALL permissions
+    assertFalse(authorizationService.isUserAuthorized("jonny", null, ALL, resource1));
+    assertFalse(authorizationService.isUserAuthorized("jonny", jonnysGroups, ALL, resource1));
+    // jonny can't read
+    assertFalse(authorizationService.isUserAuthorized("jonny", null, READ, resource1));
+    assertFalse(authorizationService.isUserAuthorized("jonny", jonnysGroups, READ, resource1));
+    // someone else can
+    assertTrue(authorizationService.isUserAuthorized("someone else", null, ALL, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone else", someOneElsesGroups, READ, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone else", null, ALL, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone else", someOneElsesGroups, READ, resource1));
+    // jonny can still delete
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, DELETE, resource1));
+    assertTrue(authorizationService.isUserAuthorized("jonny", jonnysGroups, DELETE, resource1));        
+  }
+  
+  public void testGroupOverrideGlobalGrantAuthorizationCheck() {
+    TestResource resource1 = new TestResource("resource1",100);
+
+    // create global authorization which grants all permissions to all users  (on resource1):
+    Authorization globalGrant = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    globalGrant.setResource(resource1);
+    globalGrant.setResourceId(ANY);
+    globalGrant.addPermission(ALL);    
+    authorizationService.saveAuthorization(globalGrant);
+    
+    // revoke READ for group "sales"
+    Authorization groupRevoke = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    groupRevoke.setGroupId("sales");
+    groupRevoke.setResource(resource1);
+    groupRevoke.setResourceId(ANY);
+    groupRevoke.removePermission(READ);
+    authorizationService.saveAuthorization(groupRevoke);
+        
+    List<String> jonnysGroups = Arrays.asList(new String[]{"sales", "marketing"});
+    List<String> someOneElsesGroups = Arrays.asList(new String[]{"marketing"});
+    
+    // jonny does not have ALL permissions if queried with groups
+    assertFalse(authorizationService.isUserAuthorized("jonny", jonnysGroups, ALL, resource1));
+    // if queried without groups he has 
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, ALL, resource1));
+    
+    // jonny can't read if queried with groups
+    assertFalse(authorizationService.isUserAuthorized("jonny", jonnysGroups, READ, resource1));
+    // if queried without groups he has 
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, READ, resource1));
+    
+    // someone else who is in group "marketing" but but not "sales" can
+    assertTrue(authorizationService.isUserAuthorized("someone else", someOneElsesGroups, ALL, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone else", someOneElsesGroups, READ, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone else", null, ALL, resource1));
+    assertTrue(authorizationService.isUserAuthorized("someone else", null, READ, resource1));
+    // he could'nt if he were in jonny's groups
+    assertFalse(authorizationService.isUserAuthorized("someone else", jonnysGroups, ALL, resource1));
+    assertFalse(authorizationService.isUserAuthorized("someone else", jonnysGroups, READ, resource1));
+    
+    // jonny can still delete
+    assertTrue(authorizationService.isUserAuthorized("jonny", jonnysGroups, DELETE, resource1));            
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, DELETE, resource1));
+  }
+  
+  public void testUserOverrideGroupOverrideGlobalAuthorizationCheck() {
+    TestResource resource1 = new TestResource("resource1",100);
+
+    // create global authorization which grants all permissions to all users  (on resource1):
+    Authorization globalGrant = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    globalGrant.setResource(resource1);
+    globalGrant.setResourceId(ANY);
+    globalGrant.addPermission(ALL);    
+    authorizationService.saveAuthorization(globalGrant);
+    
+    // revoke READ for group "sales"
+    Authorization groupRevoke = authorizationService.createNewAuthorization(AUTH_TYPE_REVOKE);
+    groupRevoke.setGroupId("sales");
+    groupRevoke.setResource(resource1);
+    groupRevoke.setResourceId(ANY);
+    groupRevoke.removePermission(READ);
+    authorizationService.saveAuthorization(groupRevoke);
+    
+    // add READ for jonny
+    Authorization userGrant = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
+    userGrant.setUserId("jonny");
+    userGrant.setResource(resource1);
+    userGrant.setResourceId(ANY);
+    userGrant.addPermission(READ);
+    authorizationService.saveAuthorization(userGrant);
+        
+    List<String> jonnysGroups = Arrays.asList(new String[]{"sales", "marketing"});
+    List<String> someOneElsesGroups = Arrays.asList(new String[]{"marketing"});
+    
+    // jonny can read
+    assertTrue(authorizationService.isUserAuthorized("jonny", jonnysGroups, READ, resource1));
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, READ, resource1));
+
+    // someone else in the same groups cannot
+    assertFalse(authorizationService.isUserAuthorized("someone else", jonnysGroups, READ, resource1));
+    
+    // someone else in different groups can
+    assertTrue(authorizationService.isUserAuthorized("someone else", someOneElsesGroups, READ, resource1));
+    
+  }
+  
+  public void testUserOverrideGlobalRevokeAuthorizationCheck() {
+    TestResource resource1 = new TestResource("resource1", 100);
+
+    // create global authorization which revokes all permissions to all users  (on resource1):
+    Authorization globalGrant = authorizationService.createNewAuthorization(AUTH_TYPE_GLOBAL);
+    globalGrant.setResource(resource1);
+    globalGrant.setResourceId(ANY);
+    globalGrant.removePermission(ALL);    
+    authorizationService.saveAuthorization(globalGrant);
+    
+    // add READ for jonny
+    Authorization localRevoke = authorizationService.createNewAuthorization(AUTH_TYPE_GRANT);
+    localRevoke.setUserId("jonny");
+    localRevoke.setResource(resource1);
+    localRevoke.setResourceId(ANY);
+    localRevoke.addPermission(READ);
+    authorizationService.saveAuthorization(localRevoke);
+    
+    // jonny does not have ALL permissions
+    assertFalse(authorizationService.isUserAuthorized("jonny", null, ALL, resource1));
+    // jonny can read
+    assertTrue(authorizationService.isUserAuthorized("jonny", null, READ, resource1));
+    // jonny can't delete
+    assertFalse(authorizationService.isUserAuthorized("jonny", null, DELETE, resource1));
+    
+    // someone else can't do anything
+    assertFalse(authorizationService.isUserAuthorized("someone else", null, ALL, resource1));
+    assertFalse(authorizationService.isUserAuthorized("someone else", null, READ, resource1));
+    assertFalse(authorizationService.isUserAuthorized("someone else", null, DELETE, resource1));
+  }
+    
+  protected void cleanupAfterTest() {
+    for (User user : identityService.createUserQuery().list()) {
+      identityService.deleteUser(user.getId());      
+    }
+    for (Authorization authorization : authorizationService.createAuthorizationQuery().list()) {
+      authorizationService.deleteAuthorization(authorization.getId());
+    }
   }
 
 

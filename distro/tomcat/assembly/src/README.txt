@@ -32,8 +32,7 @@ Contents:
         After starting the server, you can access the 
         following web applications:
         
-        http://localhost:8080/tasklist
-        http://localhost:8080/cockpit
+        http://localhost:8080/camunda
         http://localhost:8080/engine-rest
         http://localhost:8080/cycle    
         
@@ -48,6 +47,6 @@ Contents:
 ==================      
         
 camunda BPM platform version: ${project.version}
-Apache Tomcat Server version: ${tomcat.version}
+Apache Tomcat Server version: ${version.tomcat}
 
 =================

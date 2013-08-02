@@ -2,9 +2,9 @@
 /* Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,11 +42,17 @@ public class FormServiceImpl extends ServiceImpl implements FormService {
         return commandExecutor.execute(new GetGenericFormCmd(taskId));
     }
 
-    @Override 
+    @Override
+    public GenericForm getGenericStartFormData(String processDefinitionId) {
+        // @todo
+        return null;
+    }
+
+    @Override
     public Object getRenderedStartForm(String processDefinitionId) {
         return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, null));
     }
-    
+
     @Override
     public Object getRenderedStartForm(String processDefinitionId, String engineName) {
         return commandExecutor.execute(new GetRenderedStartFormCmd(processDefinitionId, engineName));
@@ -86,12 +92,12 @@ public class FormServiceImpl extends ServiceImpl implements FormService {
     public void submitTaskFormData(String taskId, Map<String, Object> properties) {
         commandExecutor.execute(new SubmitTaskFormCmd(taskId, properties));
     }
-    
+
     @Override
     public String getStartFormKey(String processDefinitionId) {
         return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId));
     }
-    
+
     @Override
     public String getTaskFormKey(String processDefinitionId, String taskDefinitionKey) {
         return commandExecutor.execute(new GetFormKeyCmd(processDefinitionId, taskDefinitionKey));
