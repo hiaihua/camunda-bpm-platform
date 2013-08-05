@@ -6,21 +6,32 @@ ngDefine('tasklist.services', [
 
     function EngineApi() {
 
-      this.taskList = $resource(Uri.appUri("engine://engine/:engine/task/:id/:operation"), { id: "@id" } , {
+      this.taskList = $resource(Uri.appUri("engine://engine/:engine/task/:id/:operation/:suboperation"), { id: "@id" } , {
         claim : { method: 'POST', params : { operation: "claim" }},
         unclaim : { method: 'POST', params : { operation: "unclaim" }},
         delegate : { method: 'POST', params : { operation: "delegate" }},
         resolve : { method: 'POST', params : { operation: "resolve" }},
-        complete : { method: 'POST', params : { operation: "complete" }}
+        complete : { method: 'POST', params : { operation: "complete" }},
+        completeGenericForm : { method: 'POST', params : { operation: "form", suboperation: "complete" }},
+        resolveGenericForm : { method: 'POST', params : { operation: "form", suboperation: "resolve" }}
       });
 
       var forms = $resource(Uri.appUri("engine://engine/:engine/:context/:id/:action"), { id: "@id" } , {
         startForm : { method: 'GET', params : { context: "process-definition", action: 'startForm' }},
-        taskForm : { method: 'GET', params : { context: "task" }}
+        taskForm : { method: 'GET', params : { context: "task" }},
+        genericTaskForm : { method: 'GET', params : { context: "task", action: 'form'}}
       });
 
       this.taskList.getForm = function(data, fn) {
-        return forms.taskForm(data, fn);
+          var response = forms.taskForm(data, fn);
+          console.log('getForm', response, data, fn);
+        return response;
+      };
+
+      this.taskList.getGenericForm = function(data, fn) {
+          var response = forms.genericTaskForm(data, fn);
+          console.log('getGenericForm', response, data, fn);
+        return response;
       };
 
       this.taskCount = $resource(Uri.appUri("engine://engine/:engine/task/count"));

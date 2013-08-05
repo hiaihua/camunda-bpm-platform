@@ -29,6 +29,16 @@ ngDefine('tasklist.services', [
         return variablesMap;
       },
 
+      genericVariablesToMap: function(variables) {
+        var variablesMap = {};
+
+        $.each(variables, function(ident, value) {
+            variablesMap[ident] = {"value" : value};
+        });
+
+        return variablesMap;
+      },
+
       mapToVariablesArray: function(variables_map) {
         var variablesArray = [];
 
