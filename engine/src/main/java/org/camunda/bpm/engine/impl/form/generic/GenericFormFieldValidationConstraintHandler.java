@@ -42,27 +42,38 @@ class GenericFormFieldValidationConstraintHandler {
         return constraint;
     }
 
-    void validate(Object value, ExecutionEntity execution) {
+    public GenericFormValidationResult validate(Object value, ExecutionEntity execution) {
         if (name.equals("validator")) {
             GenericFormFieldValidator validator = (GenericFormFieldValidator) ApplicationSwitchUtil.getValue(config, (ProcessDefinitionEntity) execution.getProcessDefinition(), execution);
-            validator.validate(value, execution);
+
+            if (validator != null && value != null && execution != null) {
+                return validator.validate(value, execution);
+            }
 
         } else if (name.equals("max-length")) {
             if (value != null) {
                 if (value.toString().length() >= Integer.parseInt(config.toString())) {
-                    throw new RuntimeException();
+                    return new GenericFormValidationResult(false, "is to long (max-length = " + config.toString() + ")", name, value);
+                } else {
+                    return new GenericFormValidationResult(true);
                 }
             }
         } else if (name.equals("min-length")) {
             if (value == null || value.toString().length() < Integer.parseInt(config.toString())) {
-                throw new RuntimeException();
+                return new GenericFormValidationResult(false, "is to short (min-length = " + config.toString() + ")", name, value);
+            } else {
+                return new GenericFormValidationResult(true);
             }
         } else if (name.equals("required")) {
             if (value == null || value.toString().length() == 0) {
-                throw new RuntimeException();
+                return new GenericFormValidationResult(false, "is required", name, value);
+            } else {
+                return new GenericFormValidationResult(true);
             }
         } else if (name.equals("readable")) {
         } else if (name.equals("writable")) {
         }
+
+        return new GenericFormValidationResult(true);
     }
 }

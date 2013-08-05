@@ -1,6 +1,7 @@
 package org.camunda.bpm.engine.impl.form.generic;
 
 import java.util.Map;
+import org.camunda.bpm.engine.ProcessEngineException;
 
 import org.camunda.bpm.engine.delegate.Expression;
 import org.camunda.bpm.engine.delegate.VariableScope;
@@ -27,7 +28,10 @@ class GenericFormFieldHandler {
         Object value = properties.get(id);
 
         for(GenericFormFieldValidationConstraintHandler constraint : validation.getConstraints()) {
-            constraint.validate(value, execution);
+            GenericFormValidationResult result = constraint.validate(value, execution);
+            if (result.success == false) {
+                throw new ProcessEngineException("Exception on validation on field: " + name + ", with constraint name: " + result.name + ", with value: " + result.value.toString() + ", Reason: " + result.reason);
+            }
         }
     }
 

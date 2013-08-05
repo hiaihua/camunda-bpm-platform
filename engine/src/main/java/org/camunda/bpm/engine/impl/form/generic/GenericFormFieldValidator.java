@@ -8,6 +8,6 @@ import org.camunda.bpm.engine.delegate.DelegateExecution;
  */
 public interface GenericFormFieldValidator {
 
-    public void validate(Object value, DelegateExecution execution);
-    
+    public GenericFormValidationResult validate(Object value, DelegateExecution execution);
+
 }

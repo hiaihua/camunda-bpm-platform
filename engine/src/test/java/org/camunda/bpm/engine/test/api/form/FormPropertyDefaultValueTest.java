@@ -14,7 +14,7 @@ import org.camunda.bpm.engine.test.Deployment;
 
 public class FormPropertyDefaultValueTest extends PluggableProcessEngineTestCase {
 
-    @Deployment
+    /*@Deployment
     public void testGenericFormHandler() {
         System.out.println("----------------- Start testGenericFormHandler -------------");
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("FormPropertyDefaultValueTest.testGenericFormHandler");
@@ -24,12 +24,12 @@ public class FormPropertyDefaultValueTest extends PluggableProcessEngineTestCase
         List<FormProperty> formProperties = formData.getFormProperties();
         for (FormProperty prop : formProperties) {
             System.out.println("-->" + prop.getId());
-        }*/
-        
+        }*
+
         Object genericFormData = formService.getGenericForm(task.getId());
-        
+
         System.out.println("----------------- End testGenericFormHandler -------------");
-    }
+    }*/
 
     @Deployment
     public void testDefaultValue() throws Exception {
@@ -97,7 +97,7 @@ public class FormPropertyDefaultValueTest extends PluggableProcessEngineTestCase
         Map<String, Object> formDataUpdate = new HashMap<String, Object>();
         formDataUpdate.put("longExpressionProperty", "1");
         formDataUpdate.put("booleanProperty", "false");
-        ProcessInstance processInstance = formService.submitStartFormData(processDefinitionId, formDataUpdate);
+        ProcessInstance processInstance = (ProcessInstance) formService.submitStartFormData(processDefinitionId, formDataUpdate);
 
         assertEquals(false, runtimeService.getVariable(processInstance.getId(), "booleanProperty"));
         assertEquals("someString", runtimeService.getVariable(processInstance.getId(), "stringProperty"));
