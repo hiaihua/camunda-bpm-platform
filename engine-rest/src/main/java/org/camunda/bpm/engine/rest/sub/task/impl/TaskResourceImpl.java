@@ -105,7 +105,10 @@ public class TaskResourceImpl implements TaskResource {
         }
 
         FormDto dto = FormDto.fromFormData(genericForm);
-        dto.setContextPath(ApplicationContextPathUtil.getApplicationPath(engine, task.getProcessDefinitionId()));
+        String processDefinitionId = task.getProcessDefinitionId();
+        if (processDefinitionId != null) {
+          dto.setContextPath(ApplicationContextPathUtil.getApplicationPath(engine, task.getProcessDefinitionId()));
+        }
         return dto;
     }
 

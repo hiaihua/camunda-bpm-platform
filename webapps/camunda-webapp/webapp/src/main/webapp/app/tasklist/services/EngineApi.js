@@ -18,7 +18,7 @@ ngDefine('tasklist.services', [
 
       var forms = $resource(Uri.appUri("engine://engine/:engine/:context/:id/:action"), { id: "@id" } , {
         startForm : { method: 'GET', params : { context: "process-definition", action: 'startForm' }},
-        taskForm : { method: 'GET', params : { context: "task" }},
+        taskForm : { method: 'GET', params : { context: "task", action: 'form' }},
         genericTaskForm : { method: 'GET', params : { context: "task", action: 'form'}}
       });
 
