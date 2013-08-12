@@ -47,7 +47,7 @@ class GenericFormFieldValidationConstraintHandler {
         if (name.equals("validator")) {
             GenericFormFieldValidator validator = (GenericFormFieldValidator) ApplicationSwitchUtil.getValue(config, (ProcessDefinitionEntity) execution.getProcessDefinition(), execution);
 
-            if (validator != null && value != null && execution != null) {
+            if (validator != null && execution != null) {
                 return validator.validate(value, execution, properties);
             }
 

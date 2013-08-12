@@ -30,7 +30,7 @@ class GenericFormFieldHandler {
         for(GenericFormFieldValidationConstraintHandler constraint : validation.getConstraints()) {
             GenericFormValidationResult result = constraint.validate(value, execution, properties);
             if (result.success == false) {
-                throw new ProcessEngineException("Exception on validation on field: " + name + ", with constraint name: " + result.name + ", with value: " + result.value.toString() + ", Reason: " + result.reason);
+                throw new ProcessEngineException("Exception on validation on field: " + name + ", with constraint name: " + result.name + ", with value: " + (result.value == null ? null : result.value.toString()) + ", Reason: " + result.reason);
             }
         }
     }
