@@ -1,5 +1,6 @@
 package org.camunda.bpm.engine.impl.form.generic;
 
+import java.util.Map;
 import org.camunda.bpm.engine.delegate.Expression;
 import org.camunda.bpm.engine.delegate.VariableScope;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
@@ -42,12 +43,12 @@ class GenericFormFieldValidationConstraintHandler {
         return constraint;
     }
 
-    public GenericFormValidationResult validate(Object value, ExecutionEntity execution) {
+    public GenericFormValidationResult validate(Object value, ExecutionEntity execution, Map<String, Object> properties) {
         if (name.equals("validator")) {
             GenericFormFieldValidator validator = (GenericFormFieldValidator) ApplicationSwitchUtil.getValue(config, (ProcessDefinitionEntity) execution.getProcessDefinition(), execution);
 
             if (validator != null && value != null && execution != null) {
-                return validator.validate(value, execution);
+                return validator.validate(value, execution, properties);
             }
 
         } else if (name.equals("max-length")) {

@@ -1,5 +1,6 @@
 package org.camunda.bpm.engine.impl.form.generic;
 
+import java.util.Map;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 
 /**
@@ -8,6 +9,6 @@ import org.camunda.bpm.engine.delegate.DelegateExecution;
  */
 public interface GenericFormFieldValidator {
 
-    public GenericFormValidationResult validate(Object value, DelegateExecution execution);
+    public GenericFormValidationResult validate(Object value, DelegateExecution execution, Map<String, Object> properties);
 
 }
