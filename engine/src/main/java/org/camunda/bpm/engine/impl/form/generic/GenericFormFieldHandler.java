@@ -24,11 +24,11 @@ class GenericFormFieldHandler {
     public GenericFormFieldHandler() {
     }
 
-    public void validate(Map<String, Object> properties, final ExecutionEntity execution) {
+    public void validate(Map<String, Object> properties, final ExecutionEntity execution, String type) {
         Object value = properties.get(id);
 
         for(GenericFormFieldValidationConstraintHandler constraint : validation.getConstraints()) {
-            GenericFormValidationResult result = constraint.validate(value, execution, properties);
+            GenericFormValidationResult result = constraint.validate(value, execution, properties, type);
             if (result.success == false) {
                 throw new ProcessEngineException("Exception on validation on field: " + name + ", with constraint name: " + result.name + ", with value: " + (result.value == null ? null : result.value.toString()) + ", Reason: " + result.reason);
             }

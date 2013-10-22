@@ -105,7 +105,7 @@ public class GenericFormHandler {
                             GenericFormFieldConfigurationHandler configurationHandler = new GenericFormFieldConfigurationHandler();
 
                             for (Element configurationElement : configurationElements) {
-                                List<Element> configurationConfigElements = configurationElement.elementsNS(BpmnParser.ACTIVITI_BPMN_EXTENSIONS_NS, "config");
+                                List<Element> configurationConfigElements = configurationElement.elementsNS(BpmnParser.ACTIVITI_BPMN_EXTENSIONS_NS, "entry");
                                 for (Element configurationConfigElement : configurationConfigElements) {
                                     GenericFormFieldConfigurationConfigHandler configHandler = new GenericFormFieldConfigurationConfigHandler();
 
@@ -133,7 +133,7 @@ public class GenericFormHandler {
     public void submitFormProperties(Map<String, Object> properties, ExecutionEntity execution) {
         for (GenericFormGroupHandler formGroup : formGroupHandlers) {
             for (GenericFormFieldHandler formField : formGroup.getFormFieldHandlers()) {
-                formField.validate(properties, execution);
+                formField.validate(properties, execution, formField.type);
             }
         }
     }

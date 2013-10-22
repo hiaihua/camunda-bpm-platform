@@ -5,7 +5,6 @@ import org.camunda.bpm.engine.ProcessEngineException;
 import org.camunda.bpm.engine.impl.context.Context;
 import org.camunda.bpm.engine.impl.form.TaskFormHandler;
 import org.camunda.bpm.engine.impl.form.generic.GenericForm;
-import org.camunda.bpm.engine.impl.form.generic.GenericFormHandler;
 import org.camunda.bpm.engine.impl.interceptor.Command;
 import org.camunda.bpm.engine.impl.interceptor.CommandContext;
 import org.camunda.bpm.engine.impl.persistence.entity.TaskEntity;

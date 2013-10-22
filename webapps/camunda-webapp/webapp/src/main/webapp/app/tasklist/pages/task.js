@@ -3,7 +3,7 @@ ngDefine('tasklist.pages', [
 ], function(module, angular) {
 
     var Controller = function($rootScope, $scope, $location, $routeParams, $window, Forms, Notifications, EngineApi) {
-        $scope.Values = {};
+        $scope.values = {};
 
         var taskId = $routeParams.id,
                 variables = $scope.variables = [];
@@ -23,8 +23,6 @@ ngDefine('tasklist.pages', [
             return null;
         }
 
-        var genericForm = $scope.task = EngineApi.getTaskList().get({id: taskId});
-
         var task = $scope.task = EngineApi.getTaskList().get({id: taskId});
 
         task.$then(function() {
@@ -34,6 +32,38 @@ ngDefine('tasklist.pages', [
                 $.each(data.formGroups, function(i, group) {
                     if (group.formFields && group.formFields.length !== 0) {
                         tmp.push(group);
+
+                        $.each(group.formFields, function(j, formField) {
+                            if (formField.type === 'checkbox' && !$scope.values[formField.id]) {
+                                $scope.values[formField.id] = [];
+                            }
+
+                            if (formField.defaultValue && formField.type !== 'checkbox' && formField.type !== 'radio' && formField.type !== 'select') {
+                                if (formField.type == 'number') {
+                                    $scope.values[formField.id] = Number(formField.defaultValue);
+                                } else {
+                                    $scope.values[formField.id] = formField.defaultValue;
+                                }
+                            }
+
+                            if (formField.validation && formField.validation.constraints) {
+                                var constraints = {};
+                                $.each(formField.validation.constraints, function(k, constraint) {
+                                    constraints[constraint.name.replace('-', '')] = constraint.config;
+                                });
+
+                                formField.validation.constraints = constraints;
+                            }
+
+                            if (formField.configuration && formField.configuration.configs) {
+                                var configs = {};
+                                $.each(formField.configuration.configs, function(k, config) {
+                                    configs[config.name.replace('-', '')] = config.config;
+                                });
+
+                                formField.configuration.configs = configs;
+                            }
+                        });
                     }
                 });
 
@@ -68,6 +98,12 @@ ngDefine('tasklist.pages', [
                         var variables = Forms.mapToVariablesArray(result.data),
                                 scopeVariables = $scope.variables;
 
+                        $.each(variables, function(i, variable) {
+                            $scope.values[variable.name] = variable.value;
+                        });
+
+
+
                         for (var i = 0, variable; !!(variable = variables[i]); i++) {
                             var variableInScope = getVariableByName(variable.name, scopeVariables);
                             if (!variableInScope) {
@@ -76,6 +112,8 @@ ngDefine('tasklist.pages', [
                                 variableInScope.value = variable.value;
                             }
                         }
+
+
                     });
                 }
             });
@@ -88,7 +126,7 @@ ngDefine('tasklist.pages', [
 
         $scope.submit = function() {
             //var variablesMap = Forms.variablesToMap(variables);
-            var variablesMap = Forms.genericVariablesToMap($scope.Values);
+            var variablesMap = Forms.genericVariablesToMap($scope.values);
 
             console.log('Values:', variablesMap);
 

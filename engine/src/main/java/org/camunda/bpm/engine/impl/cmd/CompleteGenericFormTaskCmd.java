@@ -58,7 +58,11 @@ public class CompleteGenericFormTaskCmd implements Command<Object>, Serializable
     
     TaskFormHandler taskFormHandler = task.getTaskDefinition().getTaskFormHandler();
     taskFormHandler.submitFormProperties(properties, task.getExecution());
-    
+
+    if (properties!=null) {
+        task.setExecutionVariables(properties);
+    }
+
     completeTask(task);
 
     return null;

@@ -17,3 +17,4 @@ dependency-reduced-pom.xml
 *.sublime-project
 *.sublime-workspace
 .DS_Store
+build.sh
