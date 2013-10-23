@@ -272,7 +272,7 @@ public class ProcessInstanceSuspensionTest extends PluggableProcessEngineTestCas
     runtimeService.suspendProcessInstanceById(processInstance.getId());
     
     try {
-      formService.submitTaskFormData(taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult().getId(), new HashMap<String, String>());
+      formService.submitTaskFormData(taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult().getId(), new HashMap<String, Object>());
       fail();
     } catch(SuspendedEntityInteractionException e) {
       // This is expected

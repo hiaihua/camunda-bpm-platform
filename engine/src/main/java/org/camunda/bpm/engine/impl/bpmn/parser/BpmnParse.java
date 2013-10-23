@@ -91,9 +91,9 @@ import org.camunda.bpm.engine.impl.el.ExpressionManager;
 import org.camunda.bpm.engine.impl.el.FixedValue;
 import org.camunda.bpm.engine.impl.el.UelExpressionCondition;
 import org.camunda.bpm.engine.impl.form.DefaultStartFormHandler;
-import org.camunda.bpm.engine.impl.form.DefaultTaskFormHandler;
 import org.camunda.bpm.engine.impl.form.StartFormHandler;
 import org.camunda.bpm.engine.impl.form.TaskFormHandler;
+import org.camunda.bpm.engine.impl.form.generic.GenericTaskFormHandler;
 import org.camunda.bpm.engine.impl.jobexecutor.TimerCatchIntermediateEventJobHandler;
 import org.camunda.bpm.engine.impl.jobexecutor.TimerDeclarationImpl;
 import org.camunda.bpm.engine.impl.jobexecutor.TimerDeclarationType;
@@ -960,6 +960,7 @@ public class BpmnParse extends Parse {
           if (startFormHandlerClassName != null) {
             startFormHandler = (StartFormHandler) ReflectUtil.instantiate(startFormHandlerClassName);
           } else {
+              // @todo GenericStartFormHandler();
             startFormHandler = new DefaultStartFormHandler();
           }
           startFormHandler.parseConfiguration(startEventElement, deployment, processDefinition, this);
@@ -2192,7 +2193,7 @@ public class BpmnParse extends Parse {
     if (taskFormHandlerClassName != null) {
       taskFormHandler = (TaskFormHandler) ReflectUtil.instantiate(taskFormHandlerClassName);
     } else {
-      taskFormHandler = new DefaultTaskFormHandler();
+      taskFormHandler = new GenericTaskFormHandler();
     }
     taskFormHandler.parseConfiguration(taskElement, deployment, processDefinition, this);
 
